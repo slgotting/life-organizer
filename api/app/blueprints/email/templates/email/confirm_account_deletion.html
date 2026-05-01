@@ -1,0 +1,15 @@
+<p>Dear {{ user.email }},</p>
+<p>
+
+    Are you sure? You've requested your account's deletion. This will remove all topics and flashcards irrevocably, forever.
+    <br>
+    <br>
+    To confirm your account deletion
+    <a href="{{ url }}">
+        click here
+    </a>
+</p>
+<p>Alternatively, you can paste the following link in your browser's address bar:</p>
+<p>{{ url }}</p>
+<p>If you have not requested your account be deleted, simply ignore this message.</p>
+<p>- %%APP_NAME%%</p>

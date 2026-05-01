@@ -1,0 +1,9 @@
+{% extends 'partials/base.html' %}
+
+{% import 'admin/macros/model_table.html' as model_table %}
+
+{% block content %}
+
+{{ model_table.html('Customers', customers) }}
+
+{% endblock %}

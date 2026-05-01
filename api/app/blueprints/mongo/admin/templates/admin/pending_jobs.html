@@ -1,0 +1,18 @@
+{% extends 'partials/base.html' %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-md-3">
+        <h4>Pending Jobs</h4>
+        <ul>
+            {% for job in pending_jobs %}
+            <li>{{ job }}</li>
+            {%endfor%}
+        </ul>
+    </div>
+</div>
+
+{% endblock %}

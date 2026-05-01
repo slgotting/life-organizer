@@ -1,0 +1,97 @@
+{% extends 'partials/base.html' %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block content %}
+
+
+<div class="table-responsive">
+    <table class="table">
+    <caption>{{ job_type }} Jobs</caption>
+    <thead>
+      <tr>
+        <th scope="col">ID</th>
+        <th scope="col">Customer ID</th>
+        <th scope="col">Property ID</th>
+        <th scope="col">Service Areas</th>
+        <th scope="col">Status</th>
+        <th scope="col">Price</th>
+        <th scope="col">Hindsight Price</th>
+        <th scope="col">Est Completion Time</th>
+        <th scope="col">Actual Completion Time</th>
+        <th scope="col">Inspect Job</th>
+        <th scope="col">Schedule Job</th>
+        <th scope="col">Delete Job</th>
+      </tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        <tr>
+            <th scope="row">{{ job['id'] }}</th>
+            <td>{{ job['customer_id'] }}</td>
+            <td>{{ job['property_id'] }}</td>
+            <td>{{ job['service_areas'] }}</td>
+            <td>{{ job['status'] }}</td>
+            <td>{{ job['price'] }}</td>
+            <td>{{ job['hindsight_price'] }}</td>
+            <td>{{ job['est_completion_time'] }}</td>
+            <td>{{ job['actual_completion_time'] }}</td>
+            <td >
+                <button class="btn btn-primary" onclick="redirectTo('/admin/inspect_job/{{job['id']}}')">
+                Inspect
+                </button>
+            </td>
+            <td >
+                <button class="btn btn-primary" onclick="redirectTo('/admin/quote_job?job_id={{job['id']}}')">
+                Quote Job
+                </button>
+            </td>
+            <td >
+                <button class="btn btn-primary" onclick="redirectTo('/admin/schedule_job?job_id={{job['id']}}')">
+                Schedule
+                </button>
+            </td>
+            <td >
+                <button class="btn btn-primary" onclick="redirectTo('/admin/job_completed_form/{{job['id']}}')">
+                Completed Form
+                </button>
+            </td>
+            <td>
+                <button class="btn btn-danger" onclick="deleteJob({{job['id']}})">
+                    Delete
+                </button>
+            </td>
+        </tr>
+        {%endfor%}
+    </tbody>
+  </table>
+  </div>
+
+  <script>
+
+    function redirectTo(location) {
+        window.location.href = location;
+    }
+
+    async function deleteJob(jobID) {
+        console.log('deleting');
+        const resp = await fetch('/admin/delete_job',
+            {
+                method: "POST",
+                mode: 'cors',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({'job_id': jobID})
+            }
+        );
+        const res = await resp.json();
+        if (res.success) {
+            window.location.reload();
+            return res;
+        } else {
+            return 0
+        }
+    }
+
+  </script>
+
+{% endblock %}

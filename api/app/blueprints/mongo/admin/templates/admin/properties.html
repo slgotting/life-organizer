@@ -1,0 +1,37 @@
+
+{% extends 'partials/base.html' %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block content %}
+
+<div class="table-responsive">
+    <table class="table">
+    <caption>Properties</caption>
+    <thead>
+      <tr>
+        <th scope="col">ID</th>
+        <th scope="col">Customer ID</th>
+        <th scope="col">Address</th>
+        <th scope="col">Driveway Time</th>
+        <th scope="col">Patio Time</th>
+        <th scope="col">Siding Time</th>
+        <th scope="col">Roof Time</th>
+      </tr>
+    </thead>
+    <tbody>
+        {% for prop in properties %}
+        <tr>
+            <th scope="row">{{ prop['id'] }}</th>
+            <td>{{ prop['customer_id'] }}</td>
+            <td>{{ prop['address'] }}</td>
+            <td>{{ prop['driveway_time'] }}</td>
+            <td>{{ prop['patio_time'] }}</td>
+            <td>{{ prop['siding_time'] }}</td>
+            <td>{{ prop['roof_time'] }}</td>
+        </tr>
+        {%endfor%}
+    </tbody>
+  </table>
+  </div>
+{% endblock %}

@@ -1,0 +1,23 @@
+
+# Production API
+
+## logs
+
+vim /home/steven/%%DIRECTORY_NAME%%/api/app.log
+sudo journalctl -u %%SERVICE_NAME%% -f
+
+## status
+
+sudo systemctl status %%SERVICE_NAME%%
+
+
+# Staging API
+
+## logs
+
+vim /home/steven/%%DIRECTORY_NAME%%-staging/api/app.log
+sudo journalctl -u %%SERVICE_NAME%%-staging -f
+
+## status
+
+sudo systemctl status %%SERVICE_NAME%%-staging

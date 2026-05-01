@@ -1,0 +1,3 @@
+[submodule "frontend/src/components/slg"]
+	path = frontend/src/components/slg
+	url = git@github.com:slgotting/slg-svelte-components.git

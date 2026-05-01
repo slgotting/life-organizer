@@ -1,0 +1,44 @@
+name: Frontend Production Deploy
+on:
+  workflow_dispatch:
+
+jobs:
+
+  build_and_deploy_frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check our runner's IP
+        run: curl ifconfig.me
+
+      - name: Checkout
+        uses: actions/checkout@v2.3.4
+        with:
+          submodules: recursive
+          token: ${{ secrets.ACCESS_TOKEN }}
+
+      - name: Get version number
+        run: echo "TAG=$(cat $GITHUB_WORKSPACE/version.py | grep -oP '[0-9]{1,}\.[0-9]{1,}\.[0-9]{1,}')" >> $GITHUB_ENV
+
+      - name: docker login
+
+
+        run: |
+          docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build image
+        run: docker build -t ${{ secrets.DOCKER_USER }}/%%APP_ID%%-frontend:${{ env.TAG }} ./frontend
+
+      - name: Push to Docker Hub
+        run: docker push ${{ secrets.DOCKER_USER }}/%%APP_ID%%-frontend:${{ env.TAG }}
+
+      - name: restarting docker container
+        uses: appleboy/ssh-action@master
+        with:
+          host: %%SERVER_IP%%
+          username: steven
+          key: ${{ secrets.SSH_KEY }}
+          # passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
+          port: 22
+          script: |
+            PATH=~/.local/bin:$PATH
+            slg-restart-docker-container ${{ secrets.SUDO_PASSWORD }} slgotting/%%APP_ID%%-frontend production-%%APP_ID%%-frontend ${{ env.TAG }} -p %%PROD_FRONTEND_PORT%%

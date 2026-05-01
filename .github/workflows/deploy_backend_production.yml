@@ -1,0 +1,34 @@
+name: Backend Production Deploy
+on:
+  workflow_dispatch:
+
+jobs:
+
+  deploy_backend:
+    name: "Deploy to Production"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: executing remote ssh commands using ssh key
+        uses: appleboy/ssh-action@master
+        with:
+          host: %%SERVER_IP%%
+          username: steven
+          key: ${{ secrets.SSH_KEY }}
+          port: 22
+          script: |
+            mkdir -p ~/.ssh/ && touch ~/.ssh/known_hosts
+
+            KEY=$(ssh-keyscan -t rsa github.com)
+            if ! grep -q "$KEY" "~/.ssh/known_hosts"; then
+              echo "$KEY" >> "~/.ssh/known_hosts"
+            fi
+
+            eval $(ssh-agent)
+            ssh-add - <<< "${{ secrets.SSH_KEY }}"
+            PATH=~/.local/bin:$PATH
+            cd ~/%%DIRECTORY_NAME%%
+            git fetch --all
+            git reset --hard origin/master
+            ~/%%DIRECTORY_NAME%%/api/venv/bin/pip3 install -r ~/%%DIRECTORY_NAME%%/api/requirements.txt
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S systemctl restart %%SERVICE_NAME%%.service

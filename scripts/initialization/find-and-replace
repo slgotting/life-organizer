@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+import subprocess
+import os
+import argparse
+from argparse import RawTextHelpFormatter
+from logger_slg import init_logger
+import yaml
+from pprint import pformat
+
+# this section is here because when we pass in a config file we also want to include those variables as potential arguments
+# and required=True in the argparse arguments would not allow that to happen.
+# So from now on I'm using these two sections to verify arguments are up to standard
+REQUIRED_ARGUMENTS = []
+DYNAMIC_DEFAULTS = { # If an argument is defaulted to a derivative of a previous required argument, we can set a lambda of said required argument
+}
+SENSITIVE_ARGUMENTS = [] # place any passwords or other sensitive arguments in here to not expose them in configuration printing
+SPECIAL_REQUIREMENTS = { # variable must return a truthy value for these lambda functions in order to proceed with running the script; follow the example requirements precedence for setting new requirements
+}
+
+def get_arguments():
+    parser = argparse.ArgumentParser(description='', formatter_class=RawTextHelpFormatter)
+    parser.add_argument('-c', '--config_filepath', help='Filepath of the config file we are using. Auto derived')
+    args = parser.parse_args()
+
+    return args
+
+def get_dynamic_default_arg(args, desired_arg):
+    parameters = DYNAMIC_DEFAULTS[desired_arg].__code__.co_varnames
+    parameter_values = [args[arg] for arg in parameters]
+    return DYNAMIC_DEFAULTS[desired_arg](*parameter_values)
+
+def build_true_configuration(args, config_filepath=None):
+    # arguments defined at the command line take precedence over config file variables
+    config = {}
+    if config_filepath:
+        config = read_config_file(config_filepath)
+
+    dict_args = vars(args)
+    for arg in dict_args:
+        if dict_args[arg] is not None:
+            config[arg] = dict_args[arg]
+
+    # handle for dynamic defaults if no value is set
+    for arg in DYNAMIC_DEFAULTS:
+        if not config.get(arg):
+            config[arg] = get_dynamic_default_arg(config, arg)
+
+    return config
+
+def strip_sensitive_arguments(config):
+    return {k: v for k, v in config.items() if k not in SENSITIVE_ARGUMENTS}
+
+def guarantee_requirements_met(config):
+    # config is the config object after assigning arg values to the config file values
+
+    # first iterate over required arguments
+    for argument in REQUIRED_ARGUMENTS:
+        if not config.get(argument):
+            logger.error(f'\n\nRequired argument "{argument}" not found. Exiting...')
+            exit(0)
+
+    # then iterate over the special requirements
+    for argument in SPECIAL_REQUIREMENTS:
+        value = config.get(argument)
+        for requirement_obj in SPECIAL_REQUIREMENTS[argument]:
+            if not requirement_obj['requirement'](value):
+                logger.error(f'\n\nSpecial requirement "{requirement_obj["name"]}" was not met for the argument "{argument}". Exiting...')
+                exit(0)
+
+def read_config_file(filepath):
+    try:
+        with open(filepath, 'r') as stream:
+            try:
+                config = yaml.safe_load(stream)
+                return config
+            except yaml.YAMLError as exc:
+                print(exc)
+                logger.error('\n\nYAML Error. Exiting...')
+                exit(0)
+    except FileNotFoundError:
+        logger.exception('Config file not found. Proceeding with defaults')
+        return {}
+
+import os
+import re
+
+def replace_in_file(file_path, pattern, replacement):
+    """Replaces all occurrences of pattern with replacement in a file."""
+    with open(file_path, 'r', encoding='utf-8') as file:
+        file_contents = file.read()
+    new_contents = re.sub(pattern, replacement, file_contents)
+    with open(file_path, 'w', encoding='utf-8') as file:
+        file.write(new_contents)
+
+def replace_in_directory(directory, pattern, replacement):
+    """Recursively replaces all occurrences of pattern with replacement in all files in a directory."""
+    # Traverse the directory
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            try:
+                # Replace pattern in the file
+                replace_in_file(file_path, pattern, replacement)
+            except Exception as e:
+                pass
+
+
+
+if __name__ == '__main__':
+    args = get_arguments()
+
+    try:
+        logger = init_logger(
+            name=__name__,
+            log_path=f'/var/log/slg/{__file__.split("/")[-1]}.log'
+        )
+        if 'config_filepath' in args:
+            config_fp = args.config_filepath if args.config_filepath else f'{os.path.abspath(__file__)}.yml'
+            logger.info(f'Using config_filepath: {config_fp}')
+            config = build_true_configuration(args, config_fp)
+            guarantee_requirements_met(config)
+            sensitive_stripped_config = strip_sensitive_arguments(config)
+            logger.info(f'Using configuration:\n\n{pformat(sensitive_stripped_config)}')
+
+        app_root_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../..')
+
+        for pattern, replace_with in config.get('replacements').items():
+            real_pattern = f"%%{pattern}%%"
+            replace_in_directory(app_root_directory, real_pattern, replace_with)
+
+    except:
+        logger.exception('An error occurred')

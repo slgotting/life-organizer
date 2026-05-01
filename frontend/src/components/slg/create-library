@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+import subprocess
+import os
+import argparse
+from argparse import RawTextHelpFormatter
+from logger_slg import init_logger
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser(description='''
+Example usage:
+    ./create-library \\
+    -a \\
+    -s \\
+    -p 'library' \\
+    -i /home/steven/time-log-app/src/components/slg \\
+    -o /home/steven/time-log-app/src/pages/library
+    ''', formatter_class=RawTextHelpFormatter)
+
+    bools = parser.add_argument_group()
+
+    parser.add_argument('-p', '--hyperlink_prefix', default='',
+                    help='If there is any prefix for hyperlinks. A common value might be "library" or something like that.')
+
+    bools.add_argument('-a', '--include_href', action='store_true',
+                    help='If to include href links')
+
+    bools.add_argument('-s', '--sveltekit', action='store_true',
+                    help='If using sveltekit then the directory structure for output pages becomes much different')
+
+    parser.add_argument('-i', '--input_directory', required=True,
+                help='Use absolute paths when specifying the input directory.')
+
+    parser.add_argument('-o', '--output_directory', required=True,
+                help='The outermost output directory')
+
+    args = parser.parse_args()
+
+    return args
+
+
+if __name__ == '__main__':
+    args = get_arguments()
+    print(args)
+
+    try:
+        logger = init_logger(
+            name=__name__,
+            log_path=f'/var/log/slg/{__file__.split("/")[-1]}.log'
+        )
+
+        a = args.include_href
+        p = args.hyperlink_prefix
+        s = args.sveltekit
+        i = args.input_directory
+        o = args.output_directory
+        subprocess.run(f"./build-component-tree {'-a' if a else ''} {f'-p {p}' if p else ''}", shell=True)
+        subprocess.run(f"./create-component-library-pages {'-s ' if s else ''}-i {i} -o {o}", shell=True)
+
+    except:
+        logger.exception('An error occurred')

@@ -1,0 +1,25 @@
+{% extends 'partials/base.html' %}
+
+{% block content %}
+
+<div class="flex" style="display: flex;">
+
+<ul>
+{% for link in links %}
+<li>
+<a href="{{ url_for(link[1])}}">{{link[0]}}</a>
+</li>
+{% endfor %}
+</ul>
+
+<ul>
+    {% for t in ['requested', 'pending', 'scheduled', 'completed', 'cancelled'] %}
+    <li>
+    <a href="/admin/jobs/{{ t }}">/admin/jobs/{{ t }}</a>
+    </li>
+    {% endfor %}
+</ul>
+
+</div>
+
+{% endblock %}

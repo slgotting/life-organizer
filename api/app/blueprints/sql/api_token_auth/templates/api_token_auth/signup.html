@@ -1,0 +1,55 @@
+<!-- #region standard html -->
+
+<form id="myForm">
+    <input name="email" value="email@gmail.com">
+    <input name="password" value="password">
+    <button>Submit</button>
+</form>
+
+<script>
+    let form = document.querySelector('#myForm');
+    form.addEventListener('submit', apiSignup);
+
+    function apiSignup(e) {
+        e.preventDefault();
+        fetch('http://127.0.0.1:5001/sign_up', {
+            method: "POST",
+            body: new URLSearchParams(new FormData(form)).toString()
+        })
+            .then(res => res.json())
+            .then(json => console.log(json))
+            .catch(error => console.warn(error));
+    }
+</script>
+
+<!-- #endregion standard html -->
+
+
+<!-- #region svelte implementation -->
+
+<form bind:this={form}>
+    <input name="email" value="email@gmail.com">
+    <input name="password" value="password">
+    <button>Submit</button>
+</form>
+
+<script>
+    let form;
+    onMount(() => {
+        form.addEventListener('submit', apiSignup);
+    });
+
+    function apiSignup(e) {
+        e.preventDefault();
+        let formData = new FormData(registerForm);
+        fetch('http://127.0.0.1:5001/sign_up', {
+            method: 'POST',
+            mode: 'cors',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(json => console.log(json))
+        .catch(error => console.warn(error));
+</script>
+
+<!-- #endregion svelte implementation -->

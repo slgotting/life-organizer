@@ -1,0 +1,49 @@
+{
+  "name": "%%APP_ID%%",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite dev",
+    "dev-lan": "vite --force --host --mode dev-lan",
+    "dev-host": "vite dev --host",
+    "build": "vite build",
+    "build-staging": "vite build --mode staging",
+    "preview": "vite preview",
+    "sync": "npx cap sync",
+    "build-capacitor": "vite build && npx cap sync",
+    "run-android": "npx cap run android",
+    "open-android": "npx cap open android",
+    "run-ios": "npx cap run ios",
+    "open-ios": "npx cap open ios",
+    "generate-assets": "npx capacitor-assets generate"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^5.0.0",
+    "@stripe/stripe-js": "^3.5.0",
+    "@sveltejs/adapter-auto": "^3.0.0",
+    "@sveltejs/adapter-static": "^3.0.1",
+    "@sveltejs/kit": "^2.0.0",
+    "@sveltejs/vite-plugin-svelte": "^3.0.0",
+    "@tailwindcss/forms": "^0.5.7",
+    "autoprefixer": "^10.4.18",
+    "postcss": "^8.4.35",
+    "stripe": "^16.4.0",
+    "svelte": "^4.2.7",
+    "svelte-popperjs": "^1.3.2",
+    "svelte-stripe": "^1.2.0",
+    "tailwind-dark-aware": "^0.3.0",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.0.3",
+    "vite-plugin-mkcert": "^1.17.4"
+  },
+  "type": "module",
+  "dependencies": {
+    "@capacitor-community/keep-awake": "^4.0.0",
+    "@capacitor/core": "^5.0.0",
+    "@capacitor/android": "^5.0.0",
+    "@capacitor/ios": "^5.0.0",
+    "@capacitor/local-notifications": "^5.0.7",
+    "svelte-french-toast": "^1.2.0"
+  }
+}

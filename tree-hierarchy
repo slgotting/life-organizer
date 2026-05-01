@@ -1,0 +1,384 @@
+.
+├── api
+│   ├── api.py
+│   ├── app
+│   │   ├── blueprints
+│   │   │   ├── ai
+│   │   │   │   ├── completions.py
+│   │   │   │   ├── constants.py
+│   │   │   │   ├── helpers.py
+│   │   │   │   └── __init__.py
+│   │   │   ├── api
+│   │   │   │   ├── forms.py
+│   │   │   │   ├── helpers.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── routes.py
+│   │   │   │   ├── templates
+│   │   │   │   │   └── api
+│   │   │   │   │       ├── availability_redirect.html
+│   │   │   │   │       ├── availability_redirect_yahoo.html
+│   │   │   │   │       ├── index.html
+│   │   │   │   │       └── sign_up.html
+│   │   │   │   └── types.py
+│   │   │   ├── email
+│   │   │   │   ├── email.py
+│   │   │   │   ├── helpers.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── routes.py
+│   │   │   │   └── templates
+│   │   │   │       └── email
+│   │   │   │           ├── confirm_account_deletion.html
+│   │   │   │           └── reset_password.html
+│   │   │   ├── error
+│   │   │   │   ├── handlers.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── templates
+│   │   │   │   │   └── error
+│   │   │   │   │       ├── 404.html
+│   │   │   │   │       └── 500.html
+│   │   │   │   └── test_routes.py
+│   │   │   ├── helpers
+│   │   │   │   ├── config.py
+│   │   │   │   ├── forms.py
+│   │   │   │   └── __init__.py
+│   │   │   ├── main
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── __init__.cpython-310.pyc
+│   │   │   │   │   └── routes.cpython-310.pyc
+│   │   │   │   └── routes.py
+│   │   │   ├── mongo
+│   │   │   │   ├── admin
+│   │   │   │   │   ├── forms.py
+│   │   │   │   │   ├── helpers.py
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── models.py
+│   │   │   │   │   ├── route_protection.py
+│   │   │   │   │   ├── routes.py
+│   │   │   │   │   └── templates
+│   │   │   │   │       └── admin
+│   │   │   │   │           ├── customers.html
+│   │   │   │   │           ├── edit_model.html
+│   │   │   │   │           ├── form.html
+│   │   │   │   │           ├── forms.html
+│   │   │   │   │           ├── index.html
+│   │   │   │   │           ├── inspect_job.html
+│   │   │   │   │           ├── job_completed_form.html
+│   │   │   │   │           ├── jobs.html
+│   │   │   │   │           ├── job_type.html
+│   │   │   │   │           ├── login.html
+│   │   │   │   │           ├── macros
+│   │   │   │   │           │   ├── admin_notification.html
+│   │   │   │   │           │   ├── form.html
+│   │   │   │   │           │   └── model_table.html
+│   │   │   │   │           ├── not_authorized.html
+│   │   │   │   │           ├── pending_jobs.html
+│   │   │   │   │           ├── properties.html
+│   │   │   │   │           ├── schedule_job.html
+│   │   │   │   │           └── test.html
+│   │   │   │   ├── api_token_auth
+│   │   │   │   │   ├── delete_account.py
+│   │   │   │   │   ├── forms.py
+│   │   │   │   │   ├── helpers.py
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── models.py
+│   │   │   │   │   ├── openid
+│   │   │   │   │   │   └── google.py
+│   │   │   │   │   ├── reset_password.py
+│   │   │   │   │   ├── routes.py
+│   │   │   │   │   ├── signin.py
+│   │   │   │   │   ├── signout.py
+│   │   │   │   │   ├── signup.py
+│   │   │   │   │   ├── templates
+│   │   │   │   │   │   ├── api_token_auth
+│   │   │   │   │   │   │   └── signup.html
+│   │   │   │   │   │   └── README.md
+│   │   │   │   │   └── token_verification.py
+│   │   │   │   └── models.py
+│   │   │   ├── payments_stripe
+│   │   │   │   ├── event_handling.py
+│   │   │   │   ├── helpers.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── routes.py
+│   │   │   │   ├── security.py
+│   │   │   │   └── webhooks.py
+│   │   │   ├── referral
+│   │   │   │   ├── forms.py
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── models.py
+│   │   │   │   ├── routes.py
+│   │   │   │   └── templates
+│   │   │   │       └── referral
+│   │   │   │           ├── index.html
+│   │   │   │           └── sign_up.html
+│   │   │   ├── settings
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── __pycache__
+│   │   │   │   │   ├── __init__.cpython-310.pyc
+│   │   │   │   │   └── routes.cpython-310.pyc
+│   │   │   │   └── routes.py
+│   │   │   ├── sql
+│   │   │   │   ├── admin
+│   │   │   │   │   ├── forms.py
+│   │   │   │   │   ├── helpers.py
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── models.py
+│   │   │   │   │   ├── route_protection.py
+│   │   │   │   │   ├── routes.py
+│   │   │   │   │   └── templates
+│   │   │   │   │       └── admin
+│   │   │   │   │           ├── customers.html
+│   │   │   │   │           ├── edit_model.html
+│   │   │   │   │           ├── form.html
+│   │   │   │   │           ├── forms.html
+│   │   │   │   │           ├── index.html
+│   │   │   │   │           ├── inspect_job.html
+│   │   │   │   │           ├── job_completed_form.html
+│   │   │   │   │           ├── jobs.html
+│   │   │   │   │           ├── job_type.html
+│   │   │   │   │           ├── login.html
+│   │   │   │   │           ├── macros
+│   │   │   │   │           │   ├── admin_notification.html
+│   │   │   │   │           │   ├── form.html
+│   │   │   │   │           │   └── model_table.html
+│   │   │   │   │           ├── not_authorized.html
+│   │   │   │   │           ├── pending_jobs.html
+│   │   │   │   │           ├── properties.html
+│   │   │   │   │           ├── schedule_job.html
+│   │   │   │   │           └── test.html
+│   │   │   │   ├── api_token_auth
+│   │   │   │   │   ├── forms.py
+│   │   │   │   │   ├── helpers.py
+│   │   │   │   │   ├── __init__.py
+│   │   │   │   │   ├── openid
+│   │   │   │   │   │   └── google.py
+│   │   │   │   │   ├── routes.py
+│   │   │   │   │   ├── signin.py
+│   │   │   │   │   ├── signout.py
+│   │   │   │   │   ├── signup.py
+│   │   │   │   │   ├── sql_models.py
+│   │   │   │   │   ├── templates
+│   │   │   │   │   │   ├── api_token_auth
+│   │   │   │   │   │   │   └── signup.html
+│   │   │   │   │   │   └── README.md
+│   │   │   │   │   └── token_verification.py
+│   │   │   │   └── models.py
+│   │   │   └── subscription
+│   │   │       ├── constants.py
+│   │   │       ├── helpers.py
+│   │   │       ├── __init__.py
+│   │   │       ├── mixin_mongo.py
+│   │   │       ├── plan_types.py
+│   │   │       ├── providers
+│   │   │       │   ├── provider.py
+│   │   │       │   ├── solana.py
+│   │   │       │   ├── stripe.py
+│   │   │       │   └── test.py
+│   │   │       ├── routes.py
+│   │   │       ├── subscription_plan.py
+│   │   │       └── types.py
+│   │   ├── __init__.py
+│   │   ├── static
+│   │   │   └── favicon.png
+│   │   └── templates
+│   │       └── partials
+│   │           └── base.html
+│   ├── config.py
+│   ├── dev.db
+│   ├── Dockerfile-dev
+│   ├── Dockerfile-prod
+│   ├── Dockerfile-staging
+│   ├── migrations
+│   │   ├── alembic.ini
+│   │   ├── env.py
+│   │   ├── README
+│   │   ├── script.py.mako
+│   │   └── versions
+│   │       ├── 164bf7808765_add_teams_to_users.py
+│   │       └── a4a35662f751_initial_migration.py
+│   ├── requirements.txt
+│   └── wsgi.py
+├── docker-compose-lan.yaml
+├── docker-compose.yaml
+├── example_files
+│   ├── app.service
+│   ├── app-staging.service
+│   └── website.conf
+├── frontend
+│   ├── assets
+│   │   ├── logo-dark.svg
+│   │   └── logo.svg
+│   ├── capacitor.config.json
+│   ├── Dockerfile
+│   ├── Dockerfile-dev
+│   ├── Dockerfile-staging
+│   ├── nginx.conf
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── postcss.config.js
+│   ├── src
+│   │   ├── app.html
+│   │   ├── assets
+│   │   │   ├── icons
+│   │   │   │   ├── icon-128.webp
+│   │   │   │   ├── icon-192.webp
+│   │   │   │   ├── icon-256.webp
+│   │   │   │   ├── icon-48.webp
+│   │   │   │   ├── icon-512.webp
+│   │   │   │   ├── icon-72.webp
+│   │   │   │   └── icon-96.webp
+│   │   │   └── sql-wasm.wasm
+│   │   ├── components
+│   │   │   ├── HomePage
+│   │   │   │   └── Main.svelte
+│   │   │   ├── LandingPage
+│   │   │   │   ├── FeatureList.svelte
+│   │   │   │   ├── Footer.svelte
+│   │   │   │   ├── Header.svelte
+│   │   │   │   ├── LifetimePrice.svelte
+│   │   │   │   ├── Main.svelte
+│   │   │   │   ├── NeuronImage.svelte
+│   │   │   │   ├── PricingSection1.svelte
+│   │   │   │   ├── PricingSection2.svelte
+│   │   │   │   └── TestimonialCards.svelte
+│   │   │   ├── SettingsModal.svelte
+│   │   │   └── Subscription
+│   │   │       ├── Details.svelte
+│   │   │       ├── PaymentOptionModal.svelte
+│   │   │       ├── RecursiveJSON.svelte
+│   │   │       ├── StripePaymentModal.svelte
+│   │   │       ├── subscription.js
+│   │   │       └── Subscription.svelte
+│   │   ├── config
+│   │   │   ├── config.dev.js
+│   │   │   ├── config.js
+│   │   │   ├── config-lan.dev.js
+│   │   │   ├── config.prod.js
+│   │   │   └── config.staging.js
+│   │   ├── lib
+│   │   │   ├── api.js
+│   │   │   ├── auth.js
+│   │   │   ├── copy.js
+│   │   │   ├── geolocation.js
+│   │   │   ├── image.js
+│   │   │   ├── index.js
+│   │   │   ├── notifications.js
+│   │   │   ├── settings.js
+│   │   │   ├── sounds.js
+│   │   │   └── strings.js
+│   │   ├── manifest.webmanifest
+│   │   ├── routes
+│   │   │   ├── account-settings
+│   │   │   │   └── +page.svelte
+│   │   │   ├── changelog
+│   │   │   │   ├── Change.svelte
+│   │   │   │   └── +page.svelte
+│   │   │   ├── +error.svelte
+│   │   │   ├── forgot-password
+│   │   │   │   └── +page.svelte
+│   │   │   ├── landing-page
+│   │   │   │   └── +page.svelte
+│   │   │   ├── +layout.js
+│   │   │   ├── +layout.svelte
+│   │   │   ├── lifetime-success
+│   │   │   │   └── +page.svelte
+│   │   │   ├── +page.svelte
+│   │   │   ├── privacy-policy
+│   │   │   │   └── +page.svelte
+│   │   │   ├── reset-password
+│   │   │   │   └── +page.svelte
+│   │   │   ├── roadmap
+│   │   │   │   ├── Item.svelte
+│   │   │   │   ├── +page.svelte
+│   │   │   │   └── Roadmap.svelte
+│   │   │   ├── signin
+│   │   │   │   └── +page.svelte
+│   │   │   ├── signout
+│   │   │   │   └── +page.svelte
+│   │   │   ├── signup
+│   │   │   │   └── +page.svelte
+│   │   │   ├── subscribe-success
+│   │   │   │   └── +page.svelte
+│   │   │   └── test
+│   │   │       └── +page.svelte
+│   │   ├── stores
+│   │   │   ├── auth.js
+│   │   │   ├── localStorage.js
+│   │   │   └── settings.js
+│   │   └── tailwind.css
+│   ├── static
+│   │   ├── app.css
+│   │   ├── favicon.png
+│   │   ├── fonts
+│   │   │   ├── Kalam
+│   │   │   │   ├── Kalam-Bold.ttf
+│   │   │   │   ├── Kalam-Light.ttf
+│   │   │   │   ├── Kalam-Regular.ttf
+│   │   │   │   ├── Kalam.zip
+│   │   │   │   └── OFL.txt
+│   │   │   └── Urbanist
+│   │   │       ├── OFL.txt
+│   │   │       ├── README.txt
+│   │   │       ├── static
+│   │   │       │   ├── Urbanist-BlackItalic.ttf
+│   │   │       │   ├── Urbanist-Black.ttf
+│   │   │       │   ├── Urbanist-BoldItalic.ttf
+│   │   │       │   ├── Urbanist-Bold.ttf
+│   │   │       │   ├── Urbanist-ExtraBoldItalic.ttf
+│   │   │       │   ├── Urbanist-ExtraBold.ttf
+│   │   │       │   ├── Urbanist-ExtraLightItalic.ttf
+│   │   │       │   ├── Urbanist-ExtraLight.ttf
+│   │   │       │   ├── Urbanist-Italic.ttf
+│   │   │       │   ├── Urbanist-LightItalic.ttf
+│   │   │       │   ├── Urbanist-Light.ttf
+│   │   │       │   ├── Urbanist-MediumItalic.ttf
+│   │   │       │   ├── Urbanist-Medium.ttf
+│   │   │       │   ├── Urbanist-Regular.ttf
+│   │   │       │   ├── Urbanist-SemiBoldItalic.ttf
+│   │   │       │   ├── Urbanist-SemiBold.ttf
+│   │   │       │   ├── Urbanist-ThinItalic.ttf
+│   │   │       │   └── Urbanist-Thin.ttf
+│   │   │       ├── Urbanist-Italic-VariableFont_wght.ttf
+│   │   │       ├── Urbanist-VariableFont_wght.ttf
+│   │   │       └── Urbanist.zip
+│   │   ├── icon-only.png
+│   │   ├── images
+│   │   │   └── icon.svg
+│   │   └── sounds
+│   │       ├── card
+│   │       │   ├── deal.mp3
+│   │       │   ├── drop.mp3
+│   │       │   ├── fall_left.mp3
+│   │       │   ├── fall_right.mp3
+│   │       │   ├── flip_down.mp3
+│   │       │   ├── flip_up.mp3
+│   │       │   ├── organize.mp3
+│   │       │   ├── place.mp3
+│   │       │   ├── riffle.mp3
+│   │       │   ├── set.mp3
+│   │       │   ├── slide.mp3
+│   │       │   ├── slide_place.mp3
+│   │       │   └── swish.mp3
+│   ├── svelte.config.js
+│   ├── tailwind.config.js
+│   ├── version.py
+│   └── vite.config.js
+├── information
+│   └── remote_server
+├── prod_api_automation.sh
+├── README.md
+├── release-checklist
+├── scripts
+│   ├── generation
+│   │   └── generate-tailwind-colors
+│   ├── initialization
+│   │   ├── find-and-replace
+│   │   └── find-and-replace.yml
+│   └── maintenance
+│       ├── backup_db.sh
+│       ├── copy_database_to_prod.sh
+│       └── copy_users_to_staging.sh
+├── tree-hierarchy
+└── version.py
+
+93 directories, 325 files

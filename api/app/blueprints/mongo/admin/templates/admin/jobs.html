@@ -1,0 +1,50 @@
+
+{% extends 'partials/base.html' %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <h4>Requested Jobs</h4>
+        <ul>
+            {% for job in requested_jobs %}
+            <li>{{ job }}</li>
+            {%endfor%}
+        </ul>
+    </div>
+    <div class="col-md-3">
+        <h4>Pending Jobs</h4>
+        <ul>
+            {% for job in pending_jobs %}
+            <li>{{ job }}</li>
+            {%endfor%}
+        </ul>
+    </div>
+    <div class="col-md-3">
+        <h4>Scheduled Jobs</h4>
+        <ul>
+            {% for job in scheduled_jobs %}
+            <li>{{ job }}</li>
+            {%endfor%}
+        </ul>
+    </div>
+    <div class="col-md-3">
+        <h4>Completed Jobs</h4>
+        <ul>
+            {% for job in completed_jobs %}
+            <li>{{ job }}</li>
+            {%endfor%}
+        </ul>
+    </div>
+    <div class="col-md-3">
+        <h4>Cancelled Jobs</h4>
+        <ul>
+            {% for job in cancelled_jobs %}
+            <li>{{ job }}</li>
+            {%endfor%}
+        </ul>
+    </div>
+</div>
+
+{% endblock %}

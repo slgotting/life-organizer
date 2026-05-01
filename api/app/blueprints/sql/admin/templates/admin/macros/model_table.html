@@ -1,0 +1,25 @@
+{% macro html(title, models) %}
+
+<div class="table-responsive">
+    <table class="table">
+    <caption>{{ title }}</caption>
+    <thead>
+      <tr>
+        {% for key in models[0].table_info() %}
+        <th scope="col">{{ key }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+        {% for model in models %}
+        <tr>
+            {% for value in model.table_info().values() %}
+            <td>{{ value }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endmacro %}

@@ -1,0 +1,121 @@
+#!/usr/bin/env python3
+import subprocess
+import os
+import argparse
+import json
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser()
+
+    # argument groups can have their tickers combined (ie -su)
+    bools = parser.add_argument_group()
+
+    parser.add_argument('-p', '--hyperlink_prefix', default='',
+                    help='If there is any prefix for hyperlinks. A common value might be "library" or something like that.')
+
+    bools.add_argument('-a', '--include_href', action='store_true',
+                    help='If to include href links')
+
+    args = parser.parse_args()
+
+    return args
+
+
+def convert_nested_dirs_to_nested_dict(directory='.', ignore={}):
+    # pass in ignore as a dict with keys as the names to ignore, values don't matter
+    BASE_IGNORE = {
+        'update-component-tree': 1,
+        '.gitignore': 1,
+        '.git': 1,
+        '__pycache__': 1,
+    }
+    FILETYPE_ACCEPT = {
+        '.svelte': 1,
+    }
+
+    structure = {}
+    walk = os.walk(directory)
+    while walk:
+        try:
+            current_walk = next(walk)
+            directory = current_walk[0]
+            print(current_walk)
+
+            acceptable_files = []
+            for filetype in FILETYPE_ACCEPT:
+                for file in current_walk[2]:
+                    if filetype in file:
+                        acceptable_files.append(file)
+
+            files = [file.split('.')[0] for file in acceptable_files if file not in BASE_IGNORE]
+
+            if directory == '.':
+                if args.include_href:
+                    leaves_list = []
+                    for filename in files:
+                        href = '/' + args.hyperlink_prefix + current_walk[0][1:] + '/' + filename
+                        leaves_list.append({
+                            'name': filename,
+                            'href': href
+                        })
+                    structure['leaves'] = leaves_list
+                else:
+                    structure['leaves'] = [{'name': filename} for filename in files]
+            else:
+                # print(f'curr dir {current_walk}')
+                split = directory.split('/')
+
+                # traverse thru the structure to find the
+                path = split[1:]
+                # print(path)
+                dict_ = structure
+                for dir_ in path:
+                    if dir_ in ignore:
+                        break
+                    try:
+                        dict_ = dict_[dir_]
+                    except KeyError:
+                        if args.include_href:
+                            leaves_list = []
+                            for filename in files:
+                                href = '/' + args.hyperlink_prefix + current_walk[0][1:] + '/' + filename
+                                leaves_list.append({
+                                    'name': filename,
+                                    'href': href
+                                })
+
+                            dict_[dir_] = {'leaves': leaves_list}
+                        else:
+                            dict_[dir_] = {'leaves': [{'name': filename} for filename in files]}
+
+
+        except StopIteration:
+            break
+
+    return structure
+
+
+if __name__ == '__main__':
+    args = get_arguments()
+    input("This file must be called from the directory that is the home directory. Are you in your desired directory?")
+    print(args)
+
+    dict_ = convert_nested_dirs_to_nested_dict()
+    print(dict_)
+
+    write = input('\n\nWrite this tree structure to directoryTreeStructure.js? (y/n): ')
+    if write.lower() == 'y':
+        with open('directoryTreeStructure.js', 'w') as f:
+            content = f'''
+const componentTree = {json.dumps(dict_)}
+export default componentTree
+            '''.replace('\t', '')
+
+            f.write(content)
+
+
+    # component_listings = {}
+    # for dir_ in dirs:
+    #     component_listings[dir_] = []
+    #     for file_ in os.walk(f'./{dir_}/'):

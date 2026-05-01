@@ -1,0 +1,46 @@
+
+{% extends 'partials/base.html' %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block content %}
+
+<div class="row" style="margin-left: 15px; margin-right:15px;">
+    <div class="col-md-6">
+        <form class="form form-horizontal" method="post" role="form">
+            {{ form.hidden_tag() }}
+            <div class="form-group  required"><label class="control-label" for="job_id">Job ID</label>
+                <input class="form-control" id="job_id" name="job_id" required="" type="number" value="{{ job_id if job_id else '' }}">
+            </div>
+            <div class="form-group  required"><label class="control-label" for="dt_scheduled">DatePicker</label>
+                <input class="form-control" id="dt_scheduled" name="dt_scheduled" required="" type="datetime-local" value="">
+            </div>
+                <input class="btn btn-default" id="submit" name="submit" type="submit" value="Submit">
+        </form>
+    </div>
+    {% if job %}
+    <div class="col-md-6">
+        <h2>Job</h2>
+        <ul>
+            {% for key, value in job.table_info().items() %}
+            <li>
+            {{ key }} -- {{ value }}
+            </li>
+            {% endfor %}
+        </ul>
+
+    </div>
+
+    {% else %}
+    <div class="col-md-6">
+        <h2>Jobs</h2>
+        <ul>
+            {% for job in pending_jobs %}
+            <li>{{job}}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,160 @@
+# ==========================================================
+# UNIVERSAL CLAUDE IGNORE (Game Dev + Web + Systems + Python)
+# ==========================================================
+
+# =========================
+# OS Junk
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+logs/
+Logs/
+*.log
+
+# =========================
+# Generic Build Outputs
+# =========================
+build/
+Build/
+dist/
+out/
+bin/
+obj/
+target/
+Debug/
+Release/
+x64/
+x86/
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.o
+*.obj
+*.elf
+*.hex
+*.map
+
+# =========================
+# C / C++ / CMake / Make
+# =========================
+CMakeFiles/
+CMakeCache.txt
+cmake-build-*/
+Makefile
+compile_commands.json
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.python-version
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage/
+.cache/
+
+# =========================
+# Node / Web Stack
+# =========================
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.next/
+.nuxt/
+.svelte-kit/
+dist-ssr/
+.vercel/
+coverage/
+*.tsbuildinfo
+
+# =========================
+# Unity
+# =========================
+[Ll]ibrary/
+[Tt]emp/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+UserSettings/
+MemoryCaptures/
+
+# =========================
+# Unreal Engine
+# =========================
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+
+# =========================
+# Godot
+# =========================
+.import/
+.godot/
+.export/
+.export_templates/
+
+# =========================
+# Arduino / Embedded
+# =========================
+*.ino.cpp
+*.elf
+*.hex
+*.map
+build/
+
+# =========================
+# External Dependencies (Vendored)
+# =========================
+third_party/
+external/
+extern/
+deps/
+vendor/
+
+# =========================
+# Containers
+# =========================
+.docker/
+docker-compose.override.yml
+
+# =========================
+# IDE / Editor
+# =========================
+.vscode/
+.idea/
+*.sln
+*.csproj.user
+*.VC.db
+*.VC.opendb
+
+# =========================
+# Large Binary Assets (optional)
+# Uncomment if needed
+# =========================
+*.png
+*.jpg
+*.jpeg
+*.mp4
+*.mov
+*.zip
+*.tar
+*.gz

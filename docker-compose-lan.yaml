@@ -1,0 +1,60 @@
+version: '3.4'
+
+services:
+  api:
+    restart: unless-stopped
+    build:
+      context: ./api
+      dockerfile: ./Dockerfile-dev
+    environment:
+      FLASK_DEBUG: 1
+      FLASK_ENV: lan-docker-development
+      FLASK_CONFIG: lan-docker-development
+    volumes:
+      - ./api:/app
+    entrypoint: gunicorn
+    command: --bind 0.0.0.0:5005 --access-logfile - wsgi:app --reload
+    env_file:
+      - './api/.env'
+    network_mode: "host"
+    user: 1000:1000
+
+  frontend:
+    restart: unless-stopped
+    build:
+      context: ./frontend
+      dockerfile: ./Dockerfile-dev
+    volumes:
+      - ./frontend:/app
+    entrypoint: npm run dev-lan
+    network_mode: "host"
+    user: 1000:1000
+
+  mongo:
+    image: 'mongo:latest'
+    ports:
+      - '27019:27017'
+    volumes:
+      - ./mongo-data:/data/db
+    # network_mode: "host"
+
+  # postgres:
+  #   image: postgres:14.5-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #   logging:
+  #     options:
+  #       max-size: 10m
+  #       max-file: "3"
+  #   ports:
+  #     - '5433:5432'
+  #   volumes:
+  #     - ./postgres-data:/var/lib/postgresql/data
+      # copy the sql script to create tables
+      # - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+volumes:
+  mongo-data:
+  # postgres-data:

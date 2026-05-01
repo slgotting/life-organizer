@@ -1,0 +1,13 @@
+MUST COMPLETE
+
+1. Payments integrated
+    - webhook endpoint should be https://%%APP_DOMAIN%%/stripe/webhook
+2. Core idea implemented
+3. Made extremely easy to try out the core idea
+4. Setup backing up of data with maintenance_scripts/backup_db.sh
+5. Setup Google Analytics
+6. Search for |UPDATE_ME| strings that still need updating
+
+IF MAKING AN APP
+
+1. Change images in ./frontend/assets

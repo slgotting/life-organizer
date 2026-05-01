@@ -1,0 +1,198 @@
+#!/usr/bin/env python3
+import subprocess
+import os
+import argparse
+from argparse import RawTextHelpFormatter
+from logger_slg import init_logger
+
+
+def get_arguments():
+    parser = argparse.ArgumentParser(description='', formatter_class=RawTextHelpFormatter)
+
+    # argument groups can have their tickers combined (ie -su)
+    bools = parser.add_argument_group()
+
+    parser.add_argument('-i', '--input_directory', required=True,
+                help='Use absolute paths when specifying the input directory.')
+
+    parser.add_argument('-o', '--output_directory', required=True,
+                help='The outermost output directory')
+
+    args = parser.parse_args()
+
+    return args
+
+def extract_component_types(filepath):
+    with open(filepath, 'r') as f:
+        lines = f.readlines()
+        for line in lines:
+            if "export let componentType" in line:
+                return [el.strip() for el in line.split('//')[1].split(',')]
+    return []
+
+def build_all_component_type_strings(component_types, component_name, tabs=2):
+    tab_size = '\t' * tabs
+    if len(component_types) == 0:
+        return f'''{tab_size}<div class="pt-4 pb-4">
+{tab_size}\t<p class="mx-8 text-gray-600 text-sm">&lt;{component_name} /&gt;
+{tab_size}\t<div class="px-6 py-4 bg-2 mx-8 rounded-lg shadow-1">
+{tab_size}\t\t<{component_name} example=true />
+{tab_size}\t</div>
+{tab_size}</div>'''
+
+    string = ''
+    for component_type in component_types:
+        string += f'''{tab_size}<div class="pt-4 pb-4">
+{tab_size}\t<p class="mx-8 text-gray-600 text-sm">&lt;{component_name} componentType=&quot;{component_type}&quot; /&gt;
+{tab_size}\t<div class="px-6 py-4 bg-2 mx-8 rounded-lg shadow-1">
+{tab_size}\t\t<{component_name} componentType={{"{component_type}"}} example=true />
+{tab_size}\t</div>
+{tab_size}</div>'''
+    return string
+
+
+BASE_FILE_CONTENTS = lambda base_dir, component_dir, component_name: f'''<script>
+    import {component_name} from '{component_dir}';
+    import NamedSlotLayout from '{base_dir}/_layoutNamedSlots.svelte';
+    import NestedTreeNavLeft2 from "{base_dir}/navs/NestedTreeNavLeft2.svelte";
+
+    import componentTree from '{base_dir}/directoryTreeStructure.js';
+</script>
+
+<NamedSlotLayout>
+    <div slot="left" class="overflow-auto">
+        <NestedTreeNavLeft2 treeObject={{componentTree}} />
+    </div>
+
+    <div slot="center">
+        <h2 class="mt-4 mb-12 w-full text-4xl text-center text-secondary-600 dark:text-secondary-300">{component_name}</h2>
+{build_all_component_type_strings(extract_component_types(component_dir), component_name, tabs=2)}
+    </div>
+
+    <div slot="right">
+
+    </div>
+</NamedSlotLayout>
+'''
+
+def generate_example_usage(filepath, component_name):
+
+    def get_example_lines(lines):
+        open_if_statement = "{#if example}"
+        # else has to exist at the start of the line. Then in that block we will search for svelteself
+        for idx, line in enumerate(lines):
+            if line.startswith(open_if_statement):
+                i = idx
+                print(idx)
+
+        if not i:
+            return None
+
+        for idx, line in enumerate(lines):
+            if line.startswith('{:else}'):
+                j = idx
+                print(idx)
+
+        return lines[i+1:j]
+
+    def replace_self_block_with_name(lines, replacement=component_name):
+        replaced_open = False
+        new_lines = []
+        for line in lines:
+            if "svelte:self" in line and not replaced_open:
+                new_lines.append(line.replace("svelte:self", replacement))
+                replaced_open = True
+            else:
+                new_lines.append(line)
+
+        # once thats iterated over we'll look for the back svelte:self entry
+        new_new_lines = []
+        replaced_close = False
+        for line in new_lines[::-1]:
+            if "/svelte:self" in line and not replaced_close:
+                new_new_lines.append(line.replace("svelte:self", replacement))
+                replaced_close = True
+            else:
+                new_new_lines.append(line)
+
+        return ''.join(new_new_lines[::-1])
+
+
+    with open(filepath, 'r') as f:
+        # extract the svelte:self block inside of the {#if example} ... {:else} block
+        lines = f.readlines()
+        example_lines = get_example_lines(lines)
+
+        if example_lines:
+            return replace_self_block_with_name(lines, component_name)
+        else:
+            return f'<{component_name} />'
+
+
+
+if __name__ == '__main__':
+    args = get_arguments()
+
+    if not args.input_directory.startswith('/') or not args.output_directory.startswith('/'):
+        print('''You did not use an absolute path when specifying the input or output directory. This file only works with absolute paths.
+
+            If on linux, run `pwd` while in the desired directory to determine the absolute path.
+
+            This requirement makes development of this script much simpler.
+        ''')
+
+    print(args)
+    input('WARNING: This will overwrite any existing found files that have matching names. Press enter to continue.')
+
+    try:
+        logger = init_logger(
+            name=__name__,
+            log_path=f'/var/log/slg/{__file__.split("/")[-1]}.log'
+        )
+
+        FILETYPE_ACCEPT = {
+            '.svelte': 1,
+        }
+        input_home_dir = args.input_directory[:-1] if args.input_directory.endswith('/') else args.input_directory
+        output_home_dir = args.output_directory[:-1] if args.output_directory.endswith('/') else args.output_directory
+
+        structure = {}
+        walk = os.walk(args.input_directory)
+        while walk:
+            try:
+                current_walk = next(walk)
+                directory = current_walk[0]
+
+                new_dir = directory.replace(input_home_dir, '')
+                output_dir = output_home_dir + new_dir
+
+                if not os.path.isdir(output_dir):
+                    os.mkdir(output_dir)
+
+                acceptable_files = []
+                for filetype in FILETYPE_ACCEPT:
+                    for file in current_walk[2]:
+                        if filetype in file:
+                            acceptable_files.append(file)
+
+                for file in acceptable_files:
+                    in_filepath = f'{output_dir}/{file}'
+                    print(in_filepath)
+
+                    example_usage = generate_example_usage(in_filepath, file.split('.')[0])
+
+                    with open(in_filepath, 'w') as f:
+                        f.write(BASE_FILE_CONTENTS(input_home_dir, f'{directory}/{file}', file.split('.')[0]))
+
+                # curr dir ('./forms/checkboxes', [], ['CheckboxGroup.svelte', 'Checkbox.svelte'])
+
+
+
+            except StopIteration:
+                break
+
+
+
+
+    except:
+        logger.exception('An error occurred')

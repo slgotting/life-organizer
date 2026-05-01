@@ -1,0 +1,41 @@
+{% extends 'partials/base.html' %}
+
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block content %}
+
+
+<div class="row">
+    <div class="col-md-3">
+        <h2>Customer Form</h2>
+        {{ wtf.quick_form(customer_form) }}
+    </div>
+    <div class="col-md-3">
+        <h2>Property Form</h2>
+        {{ wtf.quick_form(property_form) }}
+    </div>
+    <div class="col-md-3">
+        <h2>Job Form</h2>
+        {{ wtf.quick_form(job_form) }}
+    </div>
+</div>
+
+
+<!-- <form action="" method="post" class="form" role="form" data-bitwarden-watching="1">
+    <input id="csrf_token" name="csrf_token" type="hidden"
+           value="IjJiN2I5NjUwNDZiZjEyNDlkOGY4NDg4MDlmZTkxNmY2MzJjY2ZkYjEi.Yov3jA.z_bZZG1TgBj5xac7CjyDV-kcwy0">
+    <div class="form-group  required"><label class="control-label" for="username">Username</label>
+        <input class="form-control" id="username" name="username" required="" type="text" value="">
+    </div>
+    <div class="form-group  required"><label class="control-label" for="password">Password</label>
+        <input class="form-control" id="password" name="password" required="" type="password" value="">
+    </div>
+    <div class="checkbox">
+        <label>
+            <input id="remember_me" name="remember_me" type="checkbox" value="y"> Remember Me
+        </label>
+    </div>
+    <input class="btn btn-default" id="submit" name="submit" type="submit" value="Sign In">
+</form> -->
+
+{% endblock %}

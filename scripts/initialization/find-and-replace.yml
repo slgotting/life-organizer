@@ -1,0 +1,18 @@
+replacements:
+  # this is how they are represented in the apps files -> %%DIRECTORY_NAME%%
+  MOBILE_APP_ID: flashcards # Must not include any dashes;  Invalid App ID "slg.organizer-bin-app". Must be in Java package form with no dashes (ex: com.example.app)
+  APP_ID: flashcards
+  APP_NAME: FluxFlashcards
+  APP_DOMAIN: fluxflashcards.com
+  SERVER_IP: fluxflashcards.com
+  DIRECTORY_NAME: flashcard-app
+  SERVICE_NAME: flashcard_app
+  WEB_GOOGLE_OAUTH_CLIENT_ID: "457555139413-rls7pj1ectoitbst0ufh9p7hhgnldai5.apps.googleusercontent.com"
+  ANDROID_GOOGLE_OAUTH_CLIENT_ID: ""
+  IOS_GOOGLE_OAUTH_CLIENT_ID: ""
+
+  # For some reason these ports are not working, so find and replace using vscode
+  STAGING_FRONTEND_PORT: 5173
+  STAGING_BACKEND_PORT: 5000
+  PROD_FRONTEND_PORT: 5174
+  PROD_BACKEND_PORT: 5001

@@ -1,0 +1,12 @@
+
+
+{% macro form(form) %}
+
+<div class="row">
+    <div class="col-md-3">
+        <h2>Customer Form</h2>
+        {{ wtf.quick_form(form) }}
+    </div>
+</div>
+
+{% endmacro %}

@@ -1,0 +1,37 @@
+{% extends 'partials/base.html' %}
+
+{% import 'admin/macros/model_table.html' as model_table %}
+
+{% block content %}
+
+{{ model_table.html('Job', [job]) }}
+
+<div>
+    <a href="/admin/job/edit/{{ job['id'] }}">
+        <button class="btn btn-primary">
+            Edit Job
+        </button>
+    </a>
+</div>
+
+{{ model_table.html('Customer', [customer]) }}
+
+<div>
+    <a href="/admin/customer/edit/{{ customer['id'] }}">
+        <button class="btn btn-primary">
+            Edit Customer
+        </button>
+    </a>
+</div>
+
+{{ model_table.html('Property', [property]) }}
+
+<div>
+    <a href="/admin/property/edit/{{ property['id'] }}">
+        <button class="btn btn-primary">
+            Edit Property
+        </button>
+    </a>
+</div>
+
+{% endblock %}

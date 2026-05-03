@@ -80,7 +80,7 @@ SvelteKit with `@sveltejs/adapter-static` (fully prerendered SSG — no SSR):
 
 ### Multi-Environment Config
 
-`api/config.py` contains all environment configs. Template variables like `%%APP_DOMAIN%%`, `%%APP_ID%%`, `%%APP_NAME%%`, `%%SERVER_IP%%` are replaced by `scripts/initialization/find-and-replace` during project setup.
+`api/config.py` contains all environment configs. Template variables like `schedulr.ai`, `life-organizer`, `schedulr`, `127.0.0.1` are replaced by `scripts/initialization/find-and-replace` during project setup.
 
 If you see `|UPDATE_ME|` strings in code, those require manual updates specific to the deployment.
 

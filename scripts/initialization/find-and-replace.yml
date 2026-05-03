@@ -1,12 +1,12 @@
 replacements:
-  # this is how they are represented in the apps files -> %%DIRECTORY_NAME%%
-  MOBILE_APP_ID: flashcards # Must not include any dashes;  Invalid App ID "slg.organizer-bin-app". Must be in Java package form with no dashes (ex: com.example.app)
-  APP_ID: flashcards
-  APP_NAME: FluxFlashcards
-  APP_DOMAIN: fluxflashcards.com
-  SERVER_IP: fluxflashcards.com
-  DIRECTORY_NAME: flashcard-app
-  SERVICE_NAME: flashcard_app
+  # this is how they are represented in the apps files -> life-organizer
+  MOBILE_APP_ID: slg.life.organizer # Must not include any dashes;  Invalid App ID "slg.organizer-bin-app". Must be in Java package form with no dashes (ex: com.example.app)
+  APP_ID: life-organizer
+  APP_NAME: schedulr
+  APP_DOMAIN: schedulr.ai
+  SERVER_IP: 127.0.0.1
+  DIRECTORY_NAME: life-organizer
+  SERVICE_NAME: life_organizer
   WEB_GOOGLE_OAUTH_CLIENT_ID: "457555139413-rls7pj1ectoitbst0ufh9p7hhgnldai5.apps.googleusercontent.com"
   ANDROID_GOOGLE_OAUTH_CLIENT_ID: ""
   IOS_GOOGLE_OAUTH_CLIENT_ID: ""

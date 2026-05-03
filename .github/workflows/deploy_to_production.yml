@@ -13,7 +13,7 @@ jobs:
       - name: executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
         with:
-          host: %%SERVER_IP%%
+          host: 127.0.0.1
           username: steven
           key: ${{ secrets.SSH_KEY }}
           port: 22
@@ -28,11 +28,11 @@ jobs:
             eval $(ssh-agent)
             ssh-add - <<< "${{ secrets.SSH_KEY }}"
             PATH=~/.local/bin:$PATH
-            cd ~/%%DIRECTORY_NAME%%
+            cd ~/life-organizer
             git fetch --all
             git reset --hard origin/master
-            ~/%%DIRECTORY_NAME%%/api/venv/bin/pip3 install -r ~/%%DIRECTORY_NAME%%/api/requirements.txt
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S systemctl restart %%SERVICE_NAME%%.service
+            ~/life-organizer/api/venv/bin/pip3 install -r ~/life-organizer/api/requirements.txt
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S systemctl restart life_organizer.service
 
   build_and_deploy_frontend:
     runs-on: ubuntu-latest
@@ -54,19 +54,19 @@ jobs:
           docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build image
-        run: docker build -t ${{ secrets.DOCKER_USER }}/%%APP_ID%%-frontend:${{ env.TAG }} ./frontend
+        run: docker build -t ${{ secrets.DOCKER_USER }}/life-organizer-frontend:${{ env.TAG }} ./frontend
 
       - name: Push to Docker Hub
-        run: docker push ${{ secrets.DOCKER_USER }}/%%APP_ID%%-frontend:${{ env.TAG }}
+        run: docker push ${{ secrets.DOCKER_USER }}/life-organizer-frontend:${{ env.TAG }}
 
       - name: restarting docker container
         uses: appleboy/ssh-action@master
         with:
-          host: %%SERVER_IP%%
+          host: 127.0.0.1
           username: steven
           key: ${{ secrets.SSH_KEY }}
           # passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
           port: 22
           script: |
             PATH=~/.local/bin:$PATH
-            slg-restart-docker-container ${{ secrets.SUDO_PASSWORD }} slgotting/%%APP_ID%%-frontend production-%%APP_ID%%-frontend ${{ env.TAG }} -p %%PROD_FRONTEND_PORT%%
+            slg-restart-docker-container ${{ secrets.SUDO_PASSWORD }} slgotting/life-organizer-frontend production-life-organizer-frontend ${{ env.TAG }} -p %%PROD_FRONTEND_PORT%%

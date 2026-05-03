@@ -1,6 +1,6 @@
 
 export const configStaging = {
-    serverName: 'staging.api.%%APP_DOMAIN%%',
+    serverName: 'staging.api.schedulr.ai',
     useHTTPS: true,
     // usePlaceholderValues: true,
 }

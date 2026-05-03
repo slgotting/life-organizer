@@ -1,6 +1,6 @@
 {
-    "appId": "slg.%%MOBILE_APP_ID%%",
-    "appName": "%%APP_NAME%%",
+    "appId": "slg.slg.life.organizer",
+    "appName": "schedulr",
     "webDir": "build",
     "plugins": {
         "CapacitorSQLite": {

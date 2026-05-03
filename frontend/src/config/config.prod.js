@@ -1,7 +1,7 @@
 
 export const configProd = {
-    // serverName: '%%SERVER_IP%%:5005',
-    serverName: 'api.%%APP_DOMAIN%%',
+    // serverName: '127.0.0.1:5005',
+    serverName: 'api.schedulr.ai',
     useHTTPS: true,
     // usePlaceholderValues: true,
 }

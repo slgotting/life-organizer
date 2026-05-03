@@ -49,8 +49,8 @@ npm ls nodemon
         - docker run -p 27017:27017 --restart=unless-stopped -v ./mongo-data:/data/db -d mongo
 
 ## 5.75 Clone repo on the server into the following directories:
-    - %%DIRECTORY_NAME%%
-    - %%DIRECTORY_NAME%%-staging
+    - life-organizer
+    - life-organizer-staging
 
 ## 5.875 USING PYTHON 3.10 (Because we know its compatible and we're focused on simplicity), create venv for each directory and pip install -r requirements.txt in them
 
@@ -76,11 +76,11 @@ pip install -r requirements.txt
 - Follow the steps outlined [here](https://cheatsheets.slgotting.com/cheatsheets/linux/nginx#Set%20up%20TLS/SSL%20for%20HTTPS) to setup nginx (make sure to add all subdomains)
 - Copy the contents of example_files/website.conf to your server /etc/nginx/conf.d/conffile.conf
 - Run ```sudo nginx -t && sudo nginx -s reload```
-- Copy contents of example_files/%%SERVICE_NAME%%.service and %%SERVICE_NAME%%-staging.service to /etc/systemd/system
-- Run ```sudo systemctl daemon-reload & sudo sytemctl enable %%SERVICE_NAME%%.service & sudo systemctl start %%SERVICE_NAME%%.service & sudo sytemctl enable %%SERVICE_NAME%%-staging.service & sudo systemctl start %%SERVICE_NAME%%-staging.service ```
+- Copy contents of example_files/life_organizer.service and life_organizer-staging.service to /etc/systemd/system
+- Run ```sudo systemctl daemon-reload & sudo sytemctl enable life_organizer.service & sudo systemctl start life_organizer.service & sudo sytemctl enable life_organizer-staging.service & sudo systemctl start life_organizer-staging.service ```
 
 ## 7. Set up maintenance cron jobs:
-    - 5 5 * * * /home/steven/%%DIRECTORY_NAME%%/scripts/maintenance/backup_db.sh >> /var/log/slg/%%DIRECTORY_NAME%%/backup_db.log 2>&1
+    - 5 5 * * * /home/steven/life-organizer/scripts/maintenance/backup_db.sh >> /var/log/slg/life-organizer/backup_db.log 2>&1
 
 ## 8. Make logo and update locations:
 

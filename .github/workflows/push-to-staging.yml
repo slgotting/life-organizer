@@ -16,7 +16,7 @@ jobs:
         uses: appleboy/ssh-action@master
         continue-on-error: false
         with:
-          host: %%SERVER_IP%%
+          host: 127.0.0.1
           username: steven
           key: ${{ secrets.SSH_KEY }}
           port: 22
@@ -29,11 +29,11 @@ jobs:
             fi
 
             PATH=~/.local/bin:$PATH
-            cd ~/%%DIRECTORY_NAME%%-staging
+            cd ~/life-organizer-staging
             git fetch --all
             git reset --hard origin/master
-            ~/%%DIRECTORY_NAME%%-staging/api/venv/bin/pip3 install -r ~/%%DIRECTORY_NAME%%-staging/api/requirements.txt
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S systemctl restart %%SERVICE_NAME%%-staging.service
+            ~/life-organizer-staging/api/venv/bin/pip3 install -r ~/life-organizer-staging/api/requirements.txt
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S systemctl restart life_organizer-staging.service
 
   docker-build-push:
     runs-on: ubuntu-latest
@@ -55,19 +55,19 @@ jobs:
           docker login -u ${{ secrets.DOCKER_USER }} -p ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build image
-        run: docker build -t ${{ secrets.DOCKER_USER }}/%%APP_ID%%-frontend:${{ env.TAG }}-staging -f ./frontend/Dockerfile-staging ./frontend
+        run: docker build -t ${{ secrets.DOCKER_USER }}/life-organizer-frontend:${{ env.TAG }}-staging -f ./frontend/Dockerfile-staging ./frontend
 
       - name: Push to Docker Hub
-        run: docker push ${{ secrets.DOCKER_USER }}/%%APP_ID%%-frontend:${{ env.TAG }}-staging
+        run: docker push ${{ secrets.DOCKER_USER }}/life-organizer-frontend:${{ env.TAG }}-staging
 
       - name: restarting docker container
         uses: appleboy/ssh-action@master
         with:
-          host: %%SERVER_IP%%
+          host: 127.0.0.1
           username: steven
           key: ${{ secrets.SSH_KEY }}
           # passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
           port: 22
           script: |
             PATH=~/.local/bin:$PATH
-            slg-restart-docker-container ${{ secrets.SUDO_PASSWORD }} slgotting/%%APP_ID%%-frontend staging-%%APP_ID%%-frontend ${{ env.TAG }}-staging -p %%STAGING_FRONTEND_PORT%% --run_args "-e MODE=staging"
+            slg-restart-docker-container ${{ secrets.SUDO_PASSWORD }} slgotting/life-organizer-frontend staging-life-organizer-frontend ${{ env.TAG }}-staging -p %%STAGING_FRONTEND_PORT%% --run_args "-e MODE=staging"

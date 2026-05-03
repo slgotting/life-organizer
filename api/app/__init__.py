@@ -22,15 +22,15 @@ login_manager.login_view = "admin.login"
 
 cors = CORS(
     origins=['*']
-    #     'www.%%APP_DOMAIN%%',
-    #     '%%APP_DOMAIN%%',
-    #     'staging.%%APP_DOMAIN%%',
-    #     'https://staging.%%APP_DOMAIN%%',
-    #     'http://staging.%%APP_DOMAIN%%',
-    #     'https://www.%%APP_DOMAIN%%',
-    #     'http://www.%%APP_DOMAIN%%',
-    #     'https://%%APP_DOMAIN%%',
-    #     'http://%%APP_DOMAIN%%',
+    #     'www.schedulr.ai',
+    #     'schedulr.ai',
+    #     'staging.schedulr.ai',
+    #     'https://staging.schedulr.ai',
+    #     'http://staging.schedulr.ai',
+    #     'https://www.schedulr.ai',
+    #     'http://www.schedulr.ai',
+    #     'https://schedulr.ai',
+    #     'http://schedulr.ai',
     #     'https://staging.tennis-lines.com',
     #     'http://staging.tennis-lines.com',
     #     'https://tennis-lines.com',
@@ -140,6 +140,9 @@ def create_app(config_name='default'):
 
     # from app.blueprints.sql.admin import bp as admin_bp
     # app.register_blueprint(admin_bp)
+
+    from app.blueprints.organizer import bp as organizer_bp
+    app.register_blueprint(organizer_bp)
 
     from app.blueprints.error import bp as error_bp
     app.register_blueprint(error_bp)

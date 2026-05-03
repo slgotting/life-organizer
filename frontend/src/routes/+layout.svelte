@@ -10,6 +10,8 @@
     import { settingsModalOpenStore } from "../stores/settings";
     import { scheduleNotifications } from "../lib/notifications";
     import { onMount } from "svelte";
+    import { authenticatedPostRequest, logoutUser } from "../lib/auth";
+    import config, { buildServerEndpoint } from "../config/config";
 
     const urlParams = new URLSearchParams(window.location.search);
     const toastParam = urlParams.get("toast");
@@ -68,23 +70,38 @@
     });
 
     onMount(async () => {
-        // if ($authStore.isAuthenticated) {
-        //     scheduleNotifications();
-        // }
+        if ($authStore.isAuthenticated) {
+            try {
+                const res = await authenticatedPostRequest(
+                    buildServerEndpoint(config.authorizeEndpoint),
+                    $authStore.token
+                );
+                if (!res.ok) {
+                    logoutUser(() => goto('/signin'));
+                }
+            } catch {
+                // network error — don't force logout when offline
+            }
+        } else {
+            const path = window.location.pathname;
+            const isOkRoute = path === '/' || nonAuthenticatedRoutes.some(r => path.startsWith(r));
+            if (!isOkRoute) goto('/signin');
+        }
     });
 </script>
 <svelte:head>
-    <title>%%APP_NAME%%</title>
+    <title>schedulr</title>
 </svelte:head>
 
 <nav class="fixed w-full flex items-center px-2 py-2 text-daw-blue-700 text-sm font-semibold border-b border-slate-600 bg-slate-900/30 z-30 backdrop-blur-sm">
     <div class="ml-4">
         <a href="/" class="flex space-x-2 items-center font-serif">
-            <img class="w-8 h-8" src="/images/icon.svg" alt="%%APP_NAME%% Icon" />
+            <img class="w-8 h-8" src="/images/icon.svg" alt="schedulr Icon" />
         </a>
     </div>
     <div class="ml-auto mr-4 flex space-x-6">
         {#if $authStore.isAuthenticated}
+            <a class="nav-base text-xs font-medium" href="/organizer" aria-current={$page.url.pathname.startsWith('/organizer')} title="Life Organizer">Organizer</a>
             <a
                 class="nav-base"
                 on:click={(e) => {

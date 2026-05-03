@@ -3,7 +3,7 @@
 # Define MongoDB connection parameters
 MONGO_HOST="localhost"
 MONGO_PORT="27017"
-MONGO_DB="%%APP_ID%%-prod"
+MONGO_DB="life-organizer-prod"
 
 HOME_DIR="/home/steven"
 

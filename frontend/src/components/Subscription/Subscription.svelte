@@ -202,7 +202,7 @@
     <div class="relative w-96 min-h-64 flex flex-col justify-center items-center p-4 bg-white dark:bg-gray-700 text-white rounded-md shadow-md text-md">
         <div class="flex flex-col justify-center items-center">
             <div class="font-bold">We partner with Stripe for simplified billing.</div>
-            <div class="text-sm text-gray-400 tracking-tight">*%%APP_NAME%% is a subsidiary of Steezen, LLC</div>
+            <div class="text-sm text-gray-400 tracking-tight">*schedulr is a subsidiary of Steezen, LLC</div>
 
             <div class="relative mt-8 flex items-center">
                 <Details planName={currentPlanType} planAccess={planTypesObject[currentPlanType]} />

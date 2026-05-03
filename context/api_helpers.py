@@ -141,3 +141,14 @@ class IPAddress: ...
 
 # referral/models.py
 class ReferringUser: ...
+
+# organizer/models.py
+class Section(me.EmbeddedDocument): ...
+class Task(me.Document): ...           # urgency_at(reference_dt), to_dict()
+class WorkSession(me.Document): ...    # to_dict()
+class UserConfig(me.Document): ...     # to_dict()
+
+# organizer/services.py
+def get_or_create_config(user_id): ...
+def build_schedule(user_id, days=7): ...   # returns (schedule_list, overload_warning)
+def check_capacity_warning(user_id): ...   # returns (at_capacity, weekly_demand_min, weekly_capacity_min)

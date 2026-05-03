@@ -2,14 +2,14 @@
 [Unit]
 Description=gunicorn daemon
 # Since systemd 235 reloading target can pass through
-# Requires=%%SERVICE_NAME%%.socket
+# Requires=life_organizer.socket
 After=network.target
 
 [Service]
 User=steven
 Group=www-data
-WorkingDirectory=/home/steven/%%DIRECTORY_NAME%%/api
-ExecStart=/home/steven/%%DIRECTORY_NAME%%/api/venv/bin/gunicorn --bind 127.0.0.1:%%PROD_BACKEND_PORT%% -w 1 wsgi:app --access-logfile /home/steven/%%DIRECTORY_NAME%%/api/gunicorn-access.log --error-logfile /home/steven/%%DIRECTORY_NAME%%/api/gunicorn-error.log
+WorkingDirectory=/home/steven/life-organizer/api
+ExecStart=/home/steven/life-organizer/api/venv/bin/gunicorn --bind 127.0.0.1:%%PROD_BACKEND_PORT%% -w 1 wsgi:app --access-logfile /home/steven/life-organizer/api/gunicorn-access.log --error-logfile /home/steven/life-organizer/api/gunicorn-error.log
 
 [Install]
 WantedBy=multi-user.target

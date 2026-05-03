@@ -5,6 +5,7 @@ import { configProd } from './config.prod';
 
 let config = {
     // template endpoints
+    authorizeEndpoint: '/authorize',
     loginEndpoint: '/auth/sign_in',
     signUpEndpoint: '/auth/sign_up',
     forgotPasswordEndpoint: '/auth/forgot-password',
@@ -19,12 +20,19 @@ let config = {
     lifetimeAccessPurchaseEndpoint: '/subscription/purchase_lifetime_access',
     // |UPDATE_ME|
     publicStripeKey: 'pk_test_51PZtwRBIjE5s9OuTbrRCVjgtHoXBMArzAfiI5pVkXG4QrWtZELzBqTCXx61yDCxISpnJDKbjVsOmGRNPPGFaEWzM00Mbt4zXcD',
-    webGoogleOauthClientId: "%%WEB_GOOGLE_OAUTH_CLIENT_ID%%",
-    androidGoogleOauthClientId: "%%ANDROID_GOOGLE_OAUTH_CLIENT_ID%%",
-    iosGoogleOauthClientId: "%%IOS_GOOGLE_OAUTH_CLIENT_ID%%",
+    webGoogleOauthClientId: "457555139413-rls7pj1ectoitbst0ufh9p7hhgnldai5.apps.googleusercontent.com",
+    androidGoogleOauthClientId: "",
+    iosGoogleOauthClientId: "",
 
     // unique endpoints
-
+    organizerTasksEndpoint: '/organizer/tasks',
+    organizerScheduleEndpoint: '/organizer/schedule',
+    organizerConfigEndpoint: '/organizer/config',
+    organizerSectionsEndpoint: '/organizer/sections',
+    organizerActiveSessionEndpoint: '/organizer/sessions/active',
+    organizerCapacityEndpoint: '/organizer/capacity',
+    organizerHistoryEndpoint: '/organizer/history',
+    organizerStatsEndpoint: '/organizer/stats',
 }
 
 if (import.meta.env.MODE === 'production') {

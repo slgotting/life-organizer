@@ -1,7 +1,7 @@
 MUST COMPLETE
 
 1. Payments integrated
-    - webhook endpoint should be https://%%APP_DOMAIN%%/stripe/webhook
+    - webhook endpoint should be https://schedulr.ai/stripe/webhook
 2. Core idea implemented
 3. Made extremely easy to try out the core idea
 4. Setup backing up of data with maintenance_scripts/backup_db.sh

@@ -4,11 +4,11 @@
     <p><strong>Effective Date: 12 June 2024</strong></p>
     <p><strong>1. Introduction</strong></p>
     <p>
-        Welcome to %%APP_NAME%% ("we," "our," "us"). We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and
+        Welcome to schedulr ("we," "our," "us"). We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, and
         disclose information about you when you use our app (the "App") and our website, <a
             rel="noreferrer"
             target="_new"
-            href="https://%%APP_DOMAIN%%">https://%%APP_DOMAIN%%</a
+            href="https://schedulr.ai">https://schedulr.ai</a
         >.
     </p>
     <p><strong>2. Information We Collect</strong></p>

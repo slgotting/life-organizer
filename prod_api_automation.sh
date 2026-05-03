@@ -1,11 +1,11 @@
 # CURRENTLY UNUSED; NOT COMPLEX ENOUGH TO JUSTIFY USE
 ROOT_PASSWORD=$1
 
-PRODUCTION_DIR=/home/steven/%%DIRECTORY_NAME%%
-PRODUCTION_API_DIR=/home/steven/%%DIRECTORY_NAME%%/api
-PRODUCTION_FRONTEND_DIR=/home/steven/%%DIRECTORY_NAME%%/frontend
+PRODUCTION_DIR=/home/steven/life-organizer
+PRODUCTION_API_DIR=/home/steven/life-organizer/api
+PRODUCTION_FRONTEND_DIR=/home/steven/life-organizer/frontend
 
-SERVICE_NAME=%%SERVICE_NAME%%.service
+SERVICE_NAME=life_organizer.service
 
 
 # install latest requirements (git fetch and reset mustve happened in github actions)

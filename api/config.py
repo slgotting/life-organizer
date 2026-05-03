@@ -12,7 +12,7 @@ class Config:
     MAIL_PORT = int(os.environ.get('MAIL_PORT') or 465)
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', False)
     MAIL_USE_SSL = os.environ.get('MAIL_USE_TLS', True)
-    MAIL_DEFAULT_SENDER = ("%%APP_NAME%%", "slgotting@gmail.com")
+    MAIL_DEFAULT_SENDER = ("schedulr", "slgotting@gmail.com")
     # MAIL_DISPLAY_NAME = os.environ.get('MAIL_DISPLAY_NAME', 'SimplyMemorize')
     # MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'MS_ag25EM@slgotting.com')
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME', 'slgotting')
@@ -23,14 +23,14 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD', 'fmqvvijflmrehblr')
 
     # SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/pw-api'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/steven/%%APP_ID%%-api/api/dev.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/steven/life-organizer-api/api/dev.db'
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     GOOGLE_OAUTH_CLIENT_IDS = {
-        "web": "%%WEB_GOOGLE_OAUTH_CLIENT_ID%%",
-        "android": "%%ANDROID_GOOGLE_OAUTH_CLIENT_ID%%",
-        "ios": "%%IOS_GOOGLE_OAUTH_CLIENT_ID%%",
+        "web": "457555139413-rls7pj1ectoitbst0ufh9p7hhgnldai5.apps.googleusercontent.com",
+        "android": "",
+        "ios": "",
     }
     GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 
@@ -72,8 +72,8 @@ class Config:
     OPENAI_API_KEY = "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"
 
     MONGODB_SETTINGS = {
-        "db": "%%APP_ID%%-dev",
-        "host": "mongodb://127.0.0.1:27017/%%APP_ID%%-dev"
+        "db": "life-organizer-dev",
+        "host": "mongodb://127.0.0.1:27017/life-organizer-dev"
     }
 
 class DockerDevelopmentConfig(Config):
@@ -81,8 +81,8 @@ class DockerDevelopmentConfig(Config):
     SERVER_URI = 'http://127.0.0.1:5000' # this apps URI
     CLIENT_URI = 'http://127.0.0.1:5173'
     MONGODB_SETTINGS = {
-        "db": "%%APP_ID%%-dev",
-        "host": "mongodb://mongo:27017/%%APP_ID%%-dev"
+        "db": "life-organizer-dev",
+        "host": "mongodb://mongo:27017/life-organizer-dev"
     }
 
 class LANDockerDevelopmentConfig(Config):
@@ -90,8 +90,8 @@ class LANDockerDevelopmentConfig(Config):
     SERVER_URI = 'http://127.0.0.1:5000' # this apps URI
     CLIENT_URI = 'http://127.0.0.1:5173' # frontend URI
     MONGODB_SETTINGS = {
-        "db": "%%APP_ID%%-dev",
-        "host": "mongodb://127.0.0.1:27019/%%APP_ID%%-dev"
+        "db": "life-organizer-dev",
+        "host": "mongodb://127.0.0.1:27019/life-organizer-dev"
     }
 
 class DevelopmentConfig(Config):
@@ -100,25 +100,25 @@ class DevelopmentConfig(Config):
 class StagingConfig(Config):
     SECRET_KEY = 'stagalaging-secret'
 
-    SERVER_URI = 'https://staging.api.%%APP_DOMAIN%%' # this apps URI
-    CLIENT_URI = 'https://staging.%%APP_DOMAIN%%'
+    SERVER_URI = 'https://staging.api.schedulr.ai' # this apps URI
+    CLIENT_URI = 'https://staging.schedulr.ai'
 
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/%%APP_ID%%-staging'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/life-organizer-staging'
     MONGODB_SETTINGS = {
-        "db": "%%APP_ID%%-staging",
-        "host": "mongodb://127.0.0.1:27017/%%APP_ID%%-staging"
+        "db": "life-organizer-staging",
+        "host": "mongodb://127.0.0.1:27017/life-organizer-staging"
     }
 
 class ProductionConfig(Config):
 
-    SERVER_URI = 'https://api.%%APP_DOMAIN%%' # this apps URI
-    CLIENT_URI = 'https://%%APP_DOMAIN%%'
+    SERVER_URI = 'https://api.schedulr.ai' # this apps URI
+    CLIENT_URI = 'https://schedulr.ai'
 
     SECRET_KEY = 'q09j0f9j25gi9aw9rjfq29j3riojoiawbu9h40923ij323'
-    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/%%APP_ID%%'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/life-organizer'
     MONGODB_SETTINGS = {
-        "db": "%%APP_ID%%-prod",
-        "host": "mongodb://127.0.0.1:27017/%%APP_ID%%-prod"
+        "db": "life-organizer-prod",
+        "host": "mongodb://127.0.0.1:27017/life-organizer-prod"
     }
 
     # STRIPE STUFF
@@ -158,10 +158,10 @@ class ProductionConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/steven/%%APP_ID%%-api/api/test.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/steven/life-organizer-api/api/test.db'
     MONGODB_SETTINGS = {
-        "db": "%%APP_ID%%-dev",
-        "host": "mongodb://127.0.0.1:27019/%%APP_ID%%-dev"
+        "db": "life-organizer-dev",
+        "host": "mongodb://127.0.0.1:27019/life-organizer-dev"
     }
 
 config = {

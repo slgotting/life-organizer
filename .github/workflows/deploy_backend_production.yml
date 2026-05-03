@@ -12,7 +12,7 @@ jobs:
       - name: executing remote ssh commands using ssh key
         uses: appleboy/ssh-action@master
         with:
-          host: %%SERVER_IP%%
+          host: 127.0.0.1
           username: steven
           key: ${{ secrets.SSH_KEY }}
           port: 22
@@ -27,8 +27,8 @@ jobs:
             eval $(ssh-agent)
             ssh-add - <<< "${{ secrets.SSH_KEY }}"
             PATH=~/.local/bin:$PATH
-            cd ~/%%DIRECTORY_NAME%%
+            cd ~/life-organizer
             git fetch --all
             git reset --hard origin/master
-            ~/%%DIRECTORY_NAME%%/api/venv/bin/pip3 install -r ~/%%DIRECTORY_NAME%%/api/requirements.txt
-            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S systemctl restart %%SERVICE_NAME%%.service
+            ~/life-organizer/api/venv/bin/pip3 install -r ~/life-organizer/api/requirements.txt
+            echo ${{ secrets.SUDO_PASSWORD }} | sudo -S systemctl restart life_organizer.service

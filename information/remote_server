@@ -3,21 +3,21 @@
 
 ## logs
 
-vim /home/steven/%%DIRECTORY_NAME%%/api/app.log
-sudo journalctl -u %%SERVICE_NAME%% -f
+vim /home/steven/life-organizer/api/app.log
+sudo journalctl -u life_organizer -f
 
 ## status
 
-sudo systemctl status %%SERVICE_NAME%%
+sudo systemctl status life_organizer
 
 
 # Staging API
 
 ## logs
 
-vim /home/steven/%%DIRECTORY_NAME%%-staging/api/app.log
-sudo journalctl -u %%SERVICE_NAME%%-staging -f
+vim /home/steven/life-organizer-staging/api/app.log
+sudo journalctl -u life_organizer-staging -f
 
 ## status
 
-sudo systemctl status %%SERVICE_NAME%%-staging
+sudo systemctl status life_organizer-staging

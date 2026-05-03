@@ -60,3 +60,17 @@ function exampleFormRequest() {} // calls authenticatedFormRequest() with exampl
 
 // test/+page.svelte  [/test]
 // renders DescriptionWithArrowRight component
+
+// organizer/+page.svelte  [/organizer]
+// onMount: loads tasks, schedule, config, active session, capacity
+// tab: 'today' | 'week' | 'tasks'
+async function loadAll(): ...          // fetches all organizer data in parallel
+async function startTask(task): ...    // POST /organizer/tasks/:id/start
+async function stopTask(): ...         // POST /organizer/tasks/:id/stop
+async function saveTask(e): ...        // POST or PUT /organizer/tasks
+async function deleteTask(task): ...   // DELETE /organizer/tasks/:id
+async function saveConfig(e): ...      // POST /organizer/config
+async function addSection(e): ...      // POST /organizer/sections
+async function deleteSection(e): ...   // DELETE /organizer/sections/:id
+async function editSection(e): ...     // PUT /organizer/sections/:id
+async function refreshSchedule(): ...  // GET /organizer/schedule

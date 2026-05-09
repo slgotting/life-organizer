@@ -8,15 +8,6 @@
     export let completingId = null;
     export let todayMin = 0;
 
-    $: isCompleting = completingId === task.id;
-
-    function fmtDuration(min) {
-        if (min < 60) return `${Math.round(min)}m`;
-        const h = Math.floor(min / 60);
-        const m = Math.round(min % 60);
-        return m > 0 ? `${h}h ${m}m` : `${h}h`;
-    }
-
     const dispatch = createEventDispatcher();
 
     const URGENCY = {
@@ -31,14 +22,41 @@
         low:  { label: '↓ Low',  cls: 'text-slate-500' },
     };
 
+    const PRESETS = [1, 5, 15, 30, 60];
+
+    $: isCompleting = completingId === task.id;
     $: urgency = URGENCY[task.urgency] ?? URGENCY.upcoming;
     $: isActive = activeSessionTaskId === task.id;
     $: sectionName = sections.find(s => s.id === task.section_id)?.name ?? '';
     $: daysSince = task.days_since != null ? `${task.days_since}d ago` : 'Never done';
     $: priorityStyle = PRIORITY_STYLE[task.priority] ?? null;
+    $: if (isActive) startOpen = false;
+
+    let startOpen = false;
+    let customMin = localStorage.getItem('timerCustomMin') ?? '';
+
+    function fmtDuration(min) {
+        if (min < 60) return `${Math.round(min)}m`;
+        const h = Math.floor(min / 60);
+        const m = Math.round(min % 60);
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
 
     function fmtRange(min, max) {
         return min === max ? `${min}m` : `${min}–${max}m`;
+    }
+
+    function pick(timerMin) {
+        startOpen = false;
+        dispatch('start', { task, timerMin });
+    }
+
+    function pickCustom() {
+        const m = parseFloat(customMin);
+        if (m > 0) {
+            localStorage.setItem('timerCustomMin', customMin);
+            pick(m);
+        }
     }
 </script>
 
@@ -47,19 +65,13 @@
         <span class="mt-0.5 px-1.5 py-0.5 text-xs rounded {urgency.bg} {urgency.text} whitespace-nowrap shrink-0">{urgency.label}</span>
         <span class="{compact ? 'text-sm' : ''} font-medium text-slate-100 leading-snug">{task.title}</span>
         <div class="ml-auto flex items-center gap-1 shrink-0">
-            <button
-                title="Edit"
-                on:click={() => dispatch('edit', task)}
-                class="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors">
+            <button title="Edit" on:click={() => dispatch('edit', task)} class="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
             </button>
-            <button
-                title="Delete"
-                on:click={() => dispatch('delete', task)}
-                class="p-1 text-slate-400 hover:text-red-400 rounded transition-colors">
+            <button title="Delete" on:click={() => dispatch('delete', task)} class="p-1 text-slate-400 hover:text-red-400 rounded transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>
@@ -95,20 +107,55 @@
     </div>
 
     <div class="flex gap-2">
-        {#if isActive}
-            <button
-                on:click={() => dispatch('stop', task)}
-                class="flex-1 {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded transition-colors">
-                Stop
-            </button>
-        {:else}
-            <button
-                on:click={() => dispatch('start', task)}
-                disabled={!!activeSessionTaskId}
-                class="flex-1 {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-indigo-700 hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded transition-colors">
-                Start
-            </button>
-        {/if}
+        <div class="relative flex-1">
+            {#if isActive}
+                <button
+                    on:click={() => dispatch('stop', task)}
+                    class="w-full {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded transition-colors">
+                    Stop
+                </button>
+            {:else}
+                <button
+                    on:click={() => { if (!activeSessionTaskId) startOpen = !startOpen; }}
+                    disabled={!!activeSessionTaskId}
+                    class="w-full {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-indigo-700 hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded transition-colors">
+                    Start
+                </button>
+            {/if}
+
+            {#if startOpen}
+                <div class="fixed inset-0 z-40" on:click={() => startOpen = false}></div>
+                <div class="absolute bottom-full left-0 mb-1 z-50 bg-slate-900 border border-slate-700 rounded-lg p-2.5 shadow-2xl w-60">
+                    <div class="flex gap-1 mb-2">
+                        {#each PRESETS as min}
+                            <button on:click={() => pick(min)} class="flex-1 py-1.5 text-xs font-semibold bg-slate-700 hover:bg-indigo-600 text-slate-200 rounded transition-colors">
+                                {min}m
+                            </button>
+                        {/each}
+                    </div>
+                    <div class="flex gap-1 mb-2">
+                        <input
+                            type="number"
+                            bind:value={customMin}
+                            min="0.1"
+                            step="any"
+                            placeholder="min"
+                            on:keydown={(e) => e.key === 'Enter' && pickCustom()}
+                            class="w-16 shrink-0 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-indigo-500" />
+                        <button
+                            on:click={pickCustom}
+                            disabled={!customMin}
+                            class="flex-1 py-1 text-xs font-semibold bg-slate-700 hover:bg-indigo-600 disabled:opacity-40 text-slate-200 rounded transition-colors">
+                            Custom Time
+                        </button>
+                    </div>
+                    <button on:click={() => pick(null)} class="w-full py-1.5 text-xs font-semibold bg-indigo-700 hover:bg-indigo-600 text-white rounded transition-colors">
+                        Stopwatch
+                    </button>
+                </div>
+            {/if}
+        </div>
+
         <button
             on:click={() => dispatch('complete', task)}
             disabled={isCompleting || (!isActive && !!activeSessionTaskId)}
@@ -123,6 +170,7 @@
                 Mark Done
             {/if}
         </button>
+
         {#if skippable && !isActive}
             <button
                 on:click={() => dispatch('skip', task)}

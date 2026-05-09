@@ -30,6 +30,7 @@
     let tab = 'today';
 
     let completingId = null;
+    let activeTimerMin = null;
     let taskModalOpen = false;
     let taskTodayMin = {};
     let editingTask = null;
@@ -88,7 +89,14 @@
             if (tRes?.success)    tasks = tRes.tasks;
             if (sRes?.success)    { schedule = sRes.schedule; overloadWarning = sRes.overload_warning; }
             if (sectRes?.success) sections = sectRes.sections;
-            if (sessRes?.success) { activeSession = sessRes.session; activeTask = sessRes.task; }
+            if (sessRes?.success) {
+                activeSession = sessRes.session;
+                activeTask = sessRes.task;
+                if (sessRes.session) {
+                    const stored = JSON.parse(localStorage.getItem('activeTimerMin') || 'null');
+                    activeTimerMin = stored?.sessionId === sessRes.session.id ? stored.timerMin : null;
+                }
+            }
             if (capRes?.success)  atCapacity = capRes.at_capacity;
         } finally {
             loading = false;
@@ -98,11 +106,17 @@
 
     onMount(loadAll);
 
-    async function startTask(task) {
+    async function startTask({ task, timerMin = null }) {
         const res = await api(`${config.organizerTasksEndpoint}/${task.id}/start`, 'POST');
         if (res?.success) {
             activeSession = res.session;
             activeTask = task;
+            activeTimerMin = timerMin;
+            if (timerMin !== null) {
+                localStorage.setItem('activeTimerMin', JSON.stringify({ sessionId: res.session.id, timerMin }));
+            } else {
+                localStorage.removeItem('activeTimerMin');
+            }
             toast.success(`Started: ${task.title}`);
         } else {
             toast.error(res?.message ?? 'Could not start task');
@@ -116,7 +130,7 @@
         tasks = [...tasks, res.task];
         quickAddOpen = false;
         if (startNow && !activeSession) {
-            await startTask(res.task);
+            await startTask({ task: res.task, timerMin: null });
         } else {
             await refreshSchedule();
             toast.success('Task added!');
@@ -152,6 +166,8 @@
         if (res?.success) {
             activeSession = null;
             activeTask = null;
+            activeTimerMin = null;
+            localStorage.removeItem('activeTimerMin');
             tasks = tasks.map(t => t.id === res.task?.id ? res.task : t);
             toast.success('Session saved!');
             loadTodayMinutes();
@@ -166,6 +182,8 @@
             if (activeSession?.task_id === task.id) {
                 activeSession = null;
                 activeTask = null;
+                activeTimerMin = null;
+                localStorage.removeItem('activeTimerMin');
             }
             if (res.task?.is_active) {
                 tasks = tasks.map(t => t.id === res.task.id ? res.task : t);
@@ -361,7 +379,7 @@
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
 
     {#if activeSession && activeTask}
-        <ActiveTimer session={activeSession} task={activeTask} on:stop={stopTask} on:complete={() => completeTask(activeTask)} />
+        <ActiveTimer session={activeSession} task={activeTask} initialTargetMin={activeTimerMin} on:stop={stopTask} on:complete={() => completeTask(activeTask)} />
     {/if}
 
     {#if overloadWarning}

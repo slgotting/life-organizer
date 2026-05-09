@@ -207,6 +207,7 @@ def get_history():
         section = sections_map.get(task.section_id) if task else None
         session_list.append({
             'id': str(s.id),
+            'task_id': s.task_id,
             'task_title': task.title if task else 'Unknown',
             'section_id': task.section_id if task else '',
             'section_name': section.name if section else '',
@@ -269,7 +270,8 @@ def get_schedule():
     if not uid:
         return jsonify({'success': False}), 401
     days = int(request.args.get('days', 7))
-    schedule, overload = build_schedule(uid, days=days)
+    tz_offset = int(request.args.get('tz_offset', 0))
+    schedule, overload = build_schedule(uid, days=days, tz_offset_minutes=tz_offset)
     return jsonify({'success': True, 'schedule': schedule, 'overload_warning': overload})
 
 

@@ -2,6 +2,7 @@
     import { createEventDispatcher } from 'svelte';
     export let open = false;
     export let sections = [];
+    export let defaultOneOff = false;
 
     const dispatch = createEventDispatcher();
 
@@ -16,8 +17,8 @@
         section_id: '',
         duration_min: null,
         priority: 'high',
-        is_one_off: true,
-        recurrence_min_days: 2,
+        is_one_off: false,
+        recurrence_min_days: 1,
         recurrence_max_days: 7,
         pinned_dates: [],
         _newDate: '',
@@ -25,7 +26,7 @@
 
     let form = { ...DEFAULTS };
 
-    $: if (open) form = { ...DEFAULTS };
+    $: if (open) form = { ...DEFAULTS, is_one_off: defaultOneOff };
 
     function submit(startNow) {
         if (!form.title.trim()) return;

@@ -58,10 +58,10 @@ def _build_pools(cfg, date, now=None):
     return pools
 
 
-def build_schedule(user_id, days=7):
+def build_schedule(user_id, days=7, tz_offset_minutes=0):
     cfg = get_or_create_config(user_id)
     tasks = list(Task.objects(user_id=user_id, is_active=True))
-    now = datetime.utcnow()
+    now = datetime.utcnow() - timedelta(minutes=tz_offset_minutes)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     window_end = today + timedelta(days=days)
 
@@ -126,58 +126,51 @@ def build_schedule(user_id, days=7):
                     })
                     ds['pools'][task.section_id] = max(0, ds['pools'][task.section_id] - task.max_duration_min)
                     virtual_last_done[tid] = ds['date']
+                    next_eligible[tid] = ds['date'] + timedelta(days=task.recurrence_min_days)
                     placed_any = True
                 break
         if expired:
             task.pinned_dates = [d for d in task.pinned_dates if d not in expired]
             task.save()
-        if placed_any:
-            next_eligible[tid] = window_end
 
-    # Greedy multi-pass: each pass scans all tasks in priority order and places
-    # each one once on the earliest available day that has section capacity.
-    # After placement, next_eligible advances so the task won't repeat until
-    # after its recurrence window. Loop ends when a full pass places nothing.
-    changed = True
-    while changed:
-        changed = False
-        sorted_tasks = sorted(
-            tasks,
-            key=lambda t: (
-                URGENCY_RANK.get(
-                    _urgency(t, max(today, next_eligible.get(str(t.id), today)), virtual_last_done.get(str(t.id))),
-                    4
-                ) * 2 + PRIORITY_RANK.get(t.priority, 1)
-            )
-        )
-        for task in sorted_tasks:
-            tid = str(task.id)
-            if next_eligible[tid] >= window_end:
-                continue
-            start_from = max(today, next_eligible[tid])
-            for ds in day_structs:
-                if ds['date'] < start_from:
+    # Day-first greedy: for each day, repeatedly pick the highest-priority
+    # eligible task until no more tasks fit. This ensures high-priority recurring
+    # tasks claim their slot each day before lower-priority tasks fill the pool.
+    for ds in day_structs:
+        while True:
+            best = None
+            best_score = float('inf')
+            for task in tasks:
+                tid = str(task.id)
+                if next_eligible[tid] > ds['date']:
                     continue
                 if task.section_id not in ds['pools']:
                     continue
                 if ds['pools'][task.section_id] < task.min_duration_min:
                     continue
-                urgency = _urgency(task, ds['date'], virtual_last_done[tid])
-                ds['tasks'].append({
-                    'id': tid,
-                    'title': task.title,
-                    'task_type': task.task_type,
-                    'section_id': task.section_id,
-                    'urgency': urgency,
-                    'min_duration_min': task.min_duration_min,
-                    'max_duration_min': task.max_duration_min,
-                    'overtime': False,
-                })
-                ds['pools'][task.section_id] = max(0, ds['pools'][task.section_id] - task.max_duration_min)
-                virtual_last_done[tid] = ds['date']
-                next_eligible[tid] = ds['date'] + timedelta(days=task.recurrence_min_days)
-                changed = True
+                score = (
+                    URGENCY_RANK.get(_urgency(task, ds['date'], virtual_last_done.get(tid)), 4) * 2
+                    + PRIORITY_RANK.get(task.priority, 1)
+                )
+                if score < best_score:
+                    best_score = score
+                    best = task
+            if best is None:
                 break
+            tid = str(best.id)
+            ds['tasks'].append({
+                'id': tid,
+                'title': best.title,
+                'task_type': best.task_type,
+                'section_id': best.section_id,
+                'urgency': _urgency(best, ds['date'], virtual_last_done[tid]),
+                'min_duration_min': best.min_duration_min,
+                'max_duration_min': best.max_duration_min,
+                'overtime': False,
+            })
+            ds['pools'][best.section_id] = max(0, ds['pools'][best.section_id] - best.max_duration_min)
+            virtual_last_done[tid] = ds['date']
+            next_eligible[tid] = ds['date'] + timedelta(days=best.recurrence_min_days)
 
     # Overload: urgent tasks that could not be placed anywhere (no capacity)
     placed_ids = {t['id'] for ds in day_structs for t in ds['tasks']}

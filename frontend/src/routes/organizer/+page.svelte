@@ -29,7 +29,9 @@
     let loading = true;
     let tab = 'today';
 
+    let completingId = null;
     let taskModalOpen = false;
+    let taskTodayMin = {};
     let editingTask = null;
     let quickAddOpen = false;
     let assignDayOpen = false;
@@ -55,12 +57,30 @@
         return handleApiResponse(res);
     }
 
+    function currentWeekStart() {
+        const d = new Date();
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        return d.toISOString().slice(0, 10);
+    }
+
+    async function loadTodayMinutes() {
+        const res = await api(`${config.organizerHistoryEndpoint}?week_start=${currentWeekStart()}`);
+        if (!res?.success) return;
+        const todayStr = new Date().toLocaleDateString('en-CA');
+        const map = {};
+        for (const s of res.sessions) {
+            const sDate = new Date(s.start_time + 'Z').toLocaleDateString('en-CA');
+            if (sDate === todayStr) map[s.task_id] = (map[s.task_id] || 0) + (s.duration_min || 0);
+        }
+        taskTodayMin = map;
+    }
+
     async function loadAll() {
         loading = true;
         try {
             const [tRes, sRes, sectRes, sessRes, capRes] = await Promise.all([
                 api(config.organizerTasksEndpoint),
-                api(config.organizerScheduleEndpoint + '?days=7'),
+                api(config.organizerScheduleEndpoint + `?days=7&tz_offset=${new Date().getTimezoneOffset()}`),
                 api(config.organizerSectionsEndpoint),
                 api(config.organizerActiveSessionEndpoint),
                 api(config.organizerCapacityEndpoint),
@@ -73,6 +93,7 @@
         } finally {
             loading = false;
         }
+        loadTodayMinutes();
     }
 
     onMount(loadAll);
@@ -133,24 +154,32 @@
             activeTask = null;
             tasks = tasks.map(t => t.id === res.task?.id ? res.task : t);
             toast.success('Session saved!');
+            loadTodayMinutes();
         }
     }
 
     async function completeTask(task) {
+        completingId = task.id;
         const res = await api(`${config.organizerTasksEndpoint}/${task.id}/complete`, 'POST');
+        completingId = null;
         if (res?.success) {
             if (activeSession?.task_id === task.id) {
                 activeSession = null;
                 activeTask = null;
             }
-            tasks = tasks.map(t => t.id === res.task?.id ? res.task : t);
+            if (res.task?.is_active) {
+                tasks = tasks.map(t => t.id === res.task.id ? res.task : t);
+            } else {
+                tasks = tasks.filter(t => t.id !== res.task?.id);
+            }
             await refreshSchedule();
+            loadTodayMinutes();
             toast.success(`${task.title} marked complete!`);
         }
     }
 
     async function refreshSchedule() {
-        const res = await api(config.organizerScheduleEndpoint + '?days=7');
+        const res = await api(config.organizerScheduleEndpoint + `?days=7&tz_offset=${new Date().getTimezoneOffset()}`);
         if (res?.success) { schedule = res.schedule; overloadWarning = res.overload_warning; }
         const cap = await api(config.organizerCapacityEndpoint);
         if (cap?.success) atCapacity = cap.at_capacity;
@@ -321,9 +350,12 @@
         { id: 'today',   label: 'Today'     },
         { id: 'week',    label: 'This Week' },
         { id: 'tasks',   label: 'All Tasks' },
+        { id: 'oneoff',  label: 'One-off'   },
         { id: 'history', label: 'History'   },
         { id: 'stats',   label: 'Stats'     },
     ];
+
+    $: oneOffTasks = tasks.filter(t => t.is_one_off);
 </script>
 
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
@@ -412,6 +444,8 @@
                                             compact
                                             skippable
                                             activeSessionTaskId={activeSession?.task_id}
+                                            {completingId}
+                                            todayMin={taskTodayMin[fullTask.id] ?? 0}
                                             on:start={(e) => startTask(e.detail)}
                                             on:stop={stopTask}
                                             on:complete={(e) => completeTask(e.detail)}
@@ -487,14 +521,49 @@
                                 {task}
                                 {sections}
                                 activeSessionTaskId={activeSession?.task_id}
+                                {completingId}
                                 on:start={(e) => startTask(e.detail)}
                                 on:stop={stopTask}
+                                on:complete={(e) => completeTask(e.detail)}
                                 on:edit={(e) => { editingTask = e.detail; taskModalOpen = true; }}
                                 on:delete={(e) => deleteTask(e.detail)} />
                         {/each}
                     </div>
                 {/if}
             </div>
+        </div>
+
+    {:else if tab === 'oneoff'}
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-sm font-semibold text-slate-300">{oneOffTasks.length} one-off task{oneOffTasks.length !== 1 ? 's' : ''}</h2>
+                <button
+                    on:click={() => quickAddOpen = true}
+                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-rose-700 hover:bg-rose-600 text-white rounded font-semibold transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    Add One-off
+                </button>
+            </div>
+            {#if oneOffTasks.length === 0}
+                <div class="py-12 text-center text-slate-500 text-sm">No one-off tasks.</div>
+            {:else}
+                <div class="grid gap-2 sm:grid-cols-2">
+                    {#each oneOffTasks as task}
+                        <TaskCard
+                            {task}
+                            {sections}
+                            activeSessionTaskId={activeSession?.task_id}
+                            {completingId}
+                            on:start={(e) => startTask(e.detail)}
+                            on:stop={stopTask}
+                            on:complete={(e) => completeTask(e.detail)}
+                            on:edit={(e) => { editingTask = e.detail; taskModalOpen = true; }}
+                            on:delete={(e) => deleteTask(e.detail)} />
+                    {/each}
+                </div>
+            {/if}
         </div>
 
     {:else if tab === 'history'}
@@ -562,6 +631,7 @@
 <QuickAddModal
     open={quickAddOpen}
     {sections}
+    defaultOneOff={tab === 'oneoff'}
     on:save={quickAddTask}
     on:close={() => quickAddOpen = false} />
 

@@ -5,6 +5,17 @@
     export let sections = [];
     export let compact = false;
     export let skippable = false;
+    export let completingId = null;
+    export let todayMin = 0;
+
+    $: isCompleting = completingId === task.id;
+
+    function fmtDuration(min) {
+        if (min < 60) return `${Math.round(min)}m`;
+        const h = Math.floor(min / 60);
+        const m = Math.round(min % 60);
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
 
     const dispatch = createEventDispatcher();
 
@@ -80,6 +91,7 @@
         {#if !compact && sectionName}<span class="text-slate-400">{sectionName}</span>{/if}
         {#if priorityStyle}<span class={priorityStyle.cls}>{priorityStyle.label}</span>{/if}
         {#if task.overtime_eligible}<span class="text-amber-500">OT</span>{/if}
+        {#if todayMin > 0}<span class="text-emerald-400">{fmtDuration(todayMin)} today</span>{/if}
     </div>
 
     <div class="flex gap-2">
@@ -99,9 +111,17 @@
         {/if}
         <button
             on:click={() => dispatch('complete', task)}
-            disabled={!isActive && !!activeSessionTaskId}
+            disabled={isCompleting || (!isActive && !!activeSessionTaskId)}
             class="px-3 {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 rounded transition-colors whitespace-nowrap">
-            Mark Done
+            {#if isCompleting}
+                <span class="flex gap-1 items-center justify-center">
+                    <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:-0.3s]"></span>
+                    <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:-0.15s]"></span>
+                    <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce"></span>
+                </span>
+            {:else}
+                Mark Done
+            {/if}
         </button>
         {#if skippable && !isActive}
             <button

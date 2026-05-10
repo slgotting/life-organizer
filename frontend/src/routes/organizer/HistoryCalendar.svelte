@@ -104,6 +104,11 @@
         popover = null;
     }
 
+    function deleteSession() {
+        dispatch('deletesession', { sessionId: popover.session.id });
+        popover = null;
+    }
+
     function onKeydown(e) { if (e.key === 'Escape') closePopover(); }
 </script>
 
@@ -226,10 +231,18 @@
             {#if editDurationMin !== null}
                 <div class="text-xs text-slate-400">{fmtDuration(editDurationMin)}</div>
             {/if}
-            <button on:click={saveSessionEdit}
-                class="w-full text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1 font-semibold transition-colors">
-                Save
-            </button>
+            <div class="flex gap-1.5">
+                <button on:click={saveSessionEdit}
+                    class="flex-1 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1 font-semibold transition-colors">
+                    Save
+                </button>
+                <button on:click={deleteSession}
+                    class="text-xs bg-slate-700 hover:bg-red-800 text-slate-400 hover:text-red-200 rounded px-2 py-1 transition-colors" title="Delete session">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 {/if}

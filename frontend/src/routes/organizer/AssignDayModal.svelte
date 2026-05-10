@@ -26,9 +26,9 @@
         taskCount: d.tasks.length,
     }));
 
-    $: filtered = search.trim()
-        ? tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))
-        : tasks;
+    $: filtered = tasks
+        .filter(t => t.schedule_type !== 'deep_work')
+        .filter(t => !search.trim() || t.title.toLowerCase().includes(search.toLowerCase()));
 
     $: dragTask = tasks.find(t => t.id === dragTaskId) ?? null;
 

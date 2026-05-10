@@ -30,20 +30,31 @@ def create_task():
     if not uid:
         return jsonify({'success': False}), 401
     data = request.get_json() or {}
+    schedule_type = data.get('schedule_type', 'recurring')
+    min_d = int(data.get('min_duration_min', 60))
+    max_d = int(data.get('max_duration_min', 120))
+    daily_target_manual = bool(data.get('daily_target_manual', False))
+    daily_target_min = data.get('daily_target_min')
+    if schedule_type == 'deep_work' and not daily_target_manual:
+        daily_target_min = round((min_d + max_d) / 2)
     task = Task(
         user_id=uid,
         title=data.get('title', 'Untitled'),
         description=data.get('description', ''),
         section_id=data.get('section_id', ''),
         task_type=data.get('task_type', 'deep'),
-        min_duration_min=int(data.get('min_duration_min', 60)),
-        max_duration_min=int(data.get('max_duration_min', 120)),
+        min_duration_min=min_d,
+        max_duration_min=max_d,
         recurrence_min_days=int(data.get('recurrence_min_days', 1)),
         recurrence_max_days=int(data.get('recurrence_max_days', 7)),
         priority=data.get('priority', 'medium'),
         overtime_eligible=bool(data.get('overtime_eligible', False)),
         is_one_off=bool(data.get('is_one_off', False)),
         pinned_dates=data.get('pinned_dates', []),
+        schedule_type=schedule_type,
+        scheduled_days=data.get('scheduled_days', []),
+        daily_target_min=daily_target_min,
+        daily_target_manual=daily_target_manual,
     )
     task.save()
     return jsonify({'success': True, 'task': task.to_dict()}), 201
@@ -75,12 +86,15 @@ def update_task(task_id):
         'title', 'description', 'section_id', 'task_type',
         'min_duration_min', 'max_duration_min', 'recurrence_min_days',
         'recurrence_max_days', 'priority', 'overtime_eligible', 'is_one_off',
+        'schedule_type', 'scheduled_days', 'daily_target_min', 'daily_target_manual',
     ]
     for f in fields:
         if f in data:
             setattr(task, f, data[f])
     if 'pinned_dates' in data:
         task.pinned_dates = data['pinned_dates'] or []
+    if (task.schedule_type or 'recurring') == 'deep_work' and not task.daily_target_manual:
+        task.daily_target_min = round((task.min_duration_min + task.max_duration_min) / 2)
     task.save()
     return jsonify({'success': True, 'task': task.to_dict()})
 
@@ -161,11 +175,12 @@ def complete_task(task_id):
         session.end_time = now
         session.duration_min = (now - session.start_time).total_seconds() / 60
         session.save()
-    task.last_done = now
     today_str = now.strftime('%Y-%m-%d')
     task.pinned_dates = [d for d in (task.pinned_dates or []) if d != today_str]
-    if task.is_one_off:
-        task.is_active = False
+    if (task.schedule_type or 'recurring') != 'deep_work':
+        task.last_done = now
+        if task.is_one_off:
+            task.is_active = False
     task.save()
     return jsonify({'success': True, 'task': task.to_dict()})
 
@@ -244,6 +259,19 @@ def update_session(session_id):
         session.duration_min = (session.end_time - session.start_time).total_seconds() / 60
     session.save()
     return jsonify({'success': True, 'session': session.to_dict()})
+
+
+@bp.route('/sessions/<session_id>', methods=['DELETE'])
+@verify_token
+def delete_session(session_id):
+    uid = _user_id(request.headers)
+    if not uid:
+        return jsonify({'success': False}), 401
+    session = WorkSession.objects(id=session_id, user_id=uid).first()
+    if not session:
+        return jsonify({'success': False}), 404
+    session.delete()
+    return jsonify({'success': True})
 
 
 @bp.route('/sessions/active', methods=['GET'])

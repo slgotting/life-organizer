@@ -108,6 +108,10 @@
     onMount(loadAll);
 
     async function startTask({ task, timerMin = null }) {
+        if (activeSession && activeSession.task_id !== task.id) {
+            if (!confirm(`Stop "${activeTask?.title ?? 'current task'}" to start "${task.title}"?`)) return;
+            await stopTask();
+        }
         const res = await api(`${config.organizerTasksEndpoint}/${task.id}/start`, 'POST');
         if (res?.success) {
             activeSession = res.session;
@@ -204,6 +208,7 @@
             tasks = tasks.map(t => t.id === res.task?.id ? res.task : t);
             toast.success('Session saved!');
             loadTodayMinutes();
+            if (historyData) loadHistory();
         }
     }
 
@@ -331,6 +336,17 @@
         }
     }
 
+    async function deleteSession(e) {
+        const { sessionId } = e.detail;
+        const res = await api(`/organizer/sessions/${sessionId}`, 'DELETE');
+        if (res?.success) {
+            historyData = { ...historyData, sessions: historyData.sessions.filter(s => s.id !== sessionId) };
+            toast.success('Session deleted');
+        } else {
+            toast.error('Failed to delete session');
+        }
+    }
+
     async function reorderSections(e) {
         const res = await api(`${config.organizerSectionsEndpoint}/reorder`, 'PUT', { section_ids: e.detail });
         if (res?.success) sections = res.sections;
@@ -398,15 +414,22 @@
     $: todaySectionGroups = groupBySection(todayTasks);
 
     const TABS = [
-        { id: 'today',   label: 'Today'     },
-        { id: 'week',    label: 'This Week' },
-        { id: 'tasks',   label: 'All Tasks' },
-        { id: 'oneoff',  label: 'One-off'   },
-        { id: 'history', label: 'History'   },
-        { id: 'stats',   label: 'Stats'     },
+        { id: 'today',     label: 'Today'      },
+        { id: 'week',      label: 'This Week'  },
+        { id: 'tasks',     label: 'All Tasks'  },
+        { id: 'recurring', label: 'Recurring'  },
+        { id: 'oneoff',    label: 'One-off'    },
+        { id: 'deepwork',  label: 'Deep Task'  },
+        { id: 'history',   label: 'History'    },
+        { id: 'stats',     label: 'Stats'      },
     ];
 
+    $: recurringTasks = tasks.filter(t => !t.is_one_off && (t.schedule_type || 'recurring') === 'recurring');
     $: oneOffTasks = tasks.filter(t => t.is_one_off);
+    $: deepWorkTasks = tasks.filter(t => t.schedule_type === 'deep_work');
+    $: filteredRecurring = selectedSectionId === null ? recurringTasks : recurringTasks.filter(t => t.section_id === selectedSectionId);
+    $: filteredOneOff = selectedSectionId === null ? oneOffTasks : oneOffTasks.filter(t => t.section_id === selectedSectionId);
+    $: filteredDeepWork = selectedSectionId === null ? deepWorkTasks : deepWorkTasks.filter(t => t.section_id === selectedSectionId);
 </script>
 
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
@@ -540,7 +563,8 @@
             <ScheduleGrid {schedule} {sections} on:assign={assignFromWeekGrid} on:edit={(e) => { editingTask = tasks.find(t => t.id === e.detail) ?? null; taskModalOpen = true; }} />
         </div>
 
-    {:else if tab === 'tasks'}
+    {:else if tab === 'tasks' || tab === 'recurring' || tab === 'oneoff' || tab === 'deepwork'}
+        {@const tabTasks = tab === 'tasks' ? filteredTasks : tab === 'recurring' ? filteredRecurring : tab === 'oneoff' ? filteredOneOff : filteredDeepWork}
         <div class="flex gap-4">
             <div class="w-44 shrink-0 border-r border-slate-700 pr-3">
                 <SectionsSidebar
@@ -555,21 +579,41 @@
 
             <div class="flex-1 min-w-0 space-y-3">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-sm font-semibold text-slate-300">{filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}</h2>
-                    <button
-                        on:click={() => { editingTask = null; taskModalOpen = true; }}
-                        class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        New Task
-                    </button>
+                    <h2 class="text-sm font-semibold text-slate-300">{tabTasks.length} task{tabTasks.length !== 1 ? 's' : ''}</h2>
+                    {#if tab === 'oneoff'}
+                        <button
+                            on:click={() => quickAddOpen = true}
+                            class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-rose-700 hover:bg-rose-600 text-white rounded font-semibold transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Add One-off
+                        </button>
+                    {:else if tab === 'deepwork'}
+                        <button
+                            on:click={() => { editingTask = null; taskModalOpen = true; }}
+                            class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-700 hover:bg-emerald-600 text-white rounded font-semibold transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            New Deep Task
+                        </button>
+                    {:else}
+                        <button
+                            on:click={() => { editingTask = null; taskModalOpen = true; }}
+                            class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            {tab === 'recurring' ? 'New Recurring' : 'New Task'}
+                        </button>
+                    {/if}
                 </div>
 
-                {#if filteredTasks.length === 0}
+                {#if tabTasks.length === 0}
                     <div class="py-12 text-center space-y-3">
-                        <p class="text-slate-500 text-sm">{tasks.length === 0 ? 'No tasks yet.' : 'No tasks in this section.'}</p>
-                        {#if tasks.length === 0}
+                        <p class="text-slate-500 text-sm">{tab === 'tasks' && tasks.length === 0 ? 'No tasks yet.' : 'No tasks in this section.'}</p>
+                        {#if tab === 'tasks' && tasks.length === 0}
                             <button
                                 on:click={() => { editingTask = null; taskModalOpen = true; }}
                                 class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 text-white rounded font-semibold transition-colors">
@@ -579,7 +623,7 @@
                     </div>
                 {:else}
                     <div class="grid gap-2 sm:grid-cols-2">
-                        {#each filteredTasks as task}
+                        {#each tabTasks as task}
                             <TaskCard
                                 {task}
                                 {sections}
@@ -594,39 +638,6 @@
                     </div>
                 {/if}
             </div>
-        </div>
-
-    {:else if tab === 'oneoff'}
-        <div class="space-y-3">
-            <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-slate-300">{oneOffTasks.length} one-off task{oneOffTasks.length !== 1 ? 's' : ''}</h2>
-                <button
-                    on:click={() => quickAddOpen = true}
-                    class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-rose-700 hover:bg-rose-600 text-white rounded font-semibold transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Add One-off
-                </button>
-            </div>
-            {#if oneOffTasks.length === 0}
-                <div class="py-12 text-center text-slate-500 text-sm">No one-off tasks.</div>
-            {:else}
-                <div class="grid gap-2 sm:grid-cols-2">
-                    {#each oneOffTasks as task}
-                        <TaskCard
-                            {task}
-                            {sections}
-                            activeSessionTaskId={activeSession?.task_id}
-                            {completingId}
-                            on:start={(e) => startTask(e.detail)}
-                            on:stop={stopTask}
-                            on:complete={(e) => completeTask(e.detail)}
-                            on:edit={(e) => { editingTask = e.detail; taskModalOpen = true; }}
-                            on:delete={(e) => deleteTask(e.detail)} />
-                    {/each}
-                </div>
-            {/if}
         </div>
 
     {:else if tab === 'history'}
@@ -661,7 +672,8 @@
                         timeBlocks={historyData.time_blocks}
                         sections={historyData.sections}
                         days={historyDays}
-                        on:updatesession={updateSession} />
+                        on:updatesession={updateSession}
+                        on:deletesession={deleteSession} />
                 </div>
             {/if}
         </div>
@@ -680,6 +692,7 @@
 <TaskModal
     open={taskModalOpen}
     task={editingTask}
+    presetScheduleType={editingTask ? null : (tab === 'deepwork' ? 'deep_work' : null)}
     {sections}
     on:save={saveTask}
     on:close={() => { taskModalOpen = false; editingTask = null; }} />

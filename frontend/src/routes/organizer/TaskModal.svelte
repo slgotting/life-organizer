@@ -3,6 +3,7 @@
     export let open = false;
     export let task = null;
     export let sections = [];
+    export let presetScheduleType = null;
 
     const dispatch = createEventDispatcher();
 
@@ -15,6 +16,10 @@
         is_one_off: false,
         pinned_dates: [],
         _newDate: '',
+        schedule_type: 'recurring',
+        scheduled_days: [],
+        daily_target_min: 90,
+        daily_target_manual: false,
     };
 
     const PRIORITIES = [
@@ -23,16 +28,54 @@
         { value: 'low',    label: 'Low',    active: 'bg-slate-700 text-slate-300', idle: 'bg-slate-700 text-slate-500 hover:bg-slate-600' },
     ];
 
+    const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
     let form = { ...DEFAULTS };
     let _initKey = null;
     $: _key = open ? (task?.id ?? '_new') : null;
     $: if (_key !== _initKey) {
         _initKey = _key;
-        if (open) form = task ? { ...task, pinned_dates: [...(task.pinned_dates ?? [])], _newDate: '' } : { ...DEFAULTS };
+        if (open) form = task
+            ? { ...DEFAULTS, ...task, pinned_dates: [...(task.pinned_dates ?? [])], scheduled_days: [...(task.scheduled_days ?? [])], _newDate: '' }
+            : { ...DEFAULTS, schedule_type: presetScheduleType || 'recurring' };
+    }
+
+    let autoTimer = null;
+    let targetPulse = false;
+    $: currentMode = form.is_one_off ? 'one_off' : (form.schedule_type || 'recurring');
+    $: if (form.schedule_type === 'deep_work' && !form.daily_target_manual) {
+        clearTimeout(autoTimer);
+        autoTimer = setTimeout(() => {
+            const v = Math.round((form.min_duration_min + form.max_duration_min) / 2);
+            if (v !== form.daily_target_min) {
+                form.daily_target_min = v;
+                targetPulse = true;
+                setTimeout(() => targetPulse = false, 600);
+            }
+        }, 1000);
+    }
+
+    function setScheduleMode(mode) {
+        if (mode === 'one_off') {
+            form.is_one_off = true;
+            form.schedule_type = 'recurring';
+        } else {
+            form.is_one_off = false;
+            form.schedule_type = mode;
+        }
+    }
+
+    function toggleDay(i) {
+        if (form.scheduled_days.includes(i)) {
+            form.scheduled_days = form.scheduled_days.filter(d => d !== i);
+        } else {
+            form.scheduled_days = [...form.scheduled_days, i].sort((a, b) => a - b);
+        }
     }
 
     function submit() {
         if (!form.title.trim()) return;
+        if (form.schedule_type === 'deep_work' && form.scheduled_days.length === 0) return;
         dispatch('save', { ...form });
     }
 
@@ -68,27 +111,32 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs text-slate-400 mb-1">Schedule Type</label>
+                    <div class="flex gap-0.5 rounded-lg bg-slate-800 border border-slate-600 p-0.5">
+                        {#each [['recurring','Recurring'], ['deep_work','Deep Task'], ['one_off','One-off']] as [val, label]}
+                            <button
+                                on:click={() => setScheduleMode(val)}
+                                class="flex-1 py-1.5 text-xs rounded font-medium transition-colors
+                                    {currentMode === val ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}">
+                                {label}
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+
+                <div>
                     <label class="block text-xs text-slate-400 mb-1">Description</label>
                     <textarea bind:value={form.description} rows="2" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-none" placeholder="Optional details..."></textarea>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Section</label>
-                        <select bind:value={form.section_id} class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                            <option value="">None</option>
-                            {#each sections as s}
-                                <option value={s.id}>{s.name}</option>
-                            {/each}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-slate-400 mb-1">Task Type</label>
-                        <select bind:value={form.task_type} class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                            <option value="deep">Deep (needs build-up)</option>
-                            <option value="filler">Filler (quick in/out)</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Section</label>
+                    <select bind:value={form.section_id} class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <option value="">None</option>
+                        {#each sections as s}
+                            <option value={s.id}>{s.name}</option>
+                        {/each}
+                    </select>
                 </div>
 
                 <div>
@@ -118,34 +166,69 @@
                             <input type="number" bind:value={form.max_duration_min} on:change={clamp('max_duration_min', 5, 480)} class="w-16 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
                             <button on:click={() => stepField('max_duration_min', 15)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
                         </div>
+                        {#if form.schedule_type === 'deep_work'}
+                            <span class="text-slate-500 text-xs ml-1">target:</span>
+                            <input
+                                type="number"
+                                bind:value={form.daily_target_min}
+                                on:input={() => { form.daily_target_manual = true; }}
+                                min="1"
+                                class="w-16 text-center bg-slate-800 border rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500
+                                    {form.daily_target_manual ? 'border-slate-600' : 'border-emerald-700/60'}
+                                    {targetPulse ? 'pulse-once' : ''}" />
+                            <span class="text-slate-500 text-xs">m/day</span>
+                            {#if form.daily_target_manual}
+                                <button
+                                    on:click={() => { form.daily_target_manual = false; form.daily_target_min = Math.round((form.min_duration_min + form.max_duration_min) / 2); }}
+                                    class="text-xs text-emerald-500 hover:text-emerald-400 whitespace-nowrap">↺ auto</button>
+                            {:else}
+                                <span class="text-xs text-emerald-600 italic">auto</span>
+                            {/if}
+                        {/if}
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs text-slate-400 mb-2">Recurrence (days between doing)</label>
-                    <div class="flex items-center gap-2">
-                        <div class="flex items-center gap-1">
-                            <button on:click={() => stepField('recurrence_min_days', -1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
-                            <input type="number" bind:value={form.recurrence_min_days} class="w-14 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
-                            <button on:click={() => stepField('recurrence_min_days', 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                {#if form.schedule_type === 'deep_work'}
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Active Days</label>
+                        <div class="flex gap-1">
+                            {#each DAYS as label, i}
+                                <button
+                                    on:click={() => toggleDay(i)}
+                                    class="flex-1 py-2 text-xs rounded font-medium transition-colors
+                                        {form.scheduled_days.includes(i) ? 'bg-emerald-700 text-white' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'}">
+                                    {label}
+                                </button>
+                            {/each}
                         </div>
-                        <span class="text-slate-500 text-xs">to</span>
-                        <div class="flex items-center gap-1">
-                            <button on:click={() => stepField('recurrence_max_days', -1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
-                            <input type="number" bind:value={form.recurrence_max_days} class="w-14 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
-                            <button on:click={() => stepField('recurrence_max_days', 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                        {#if form.scheduled_days.length === 0}
+                            <p class="text-xs text-rose-400 mt-1">Select at least one day.</p>
+                        {/if}
+                    </div>
+                {/if}
+
+                {#if form.schedule_type === 'recurring' && !form.is_one_off}
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-2">Recurrence (days between doing)</label>
+                        <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1">
+                                <button on:click={() => stepField('recurrence_min_days', -1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
+                                <input type="number" bind:value={form.recurrence_min_days} class="w-14 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                                <button on:click={() => stepField('recurrence_min_days', 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                            </div>
+                            <span class="text-slate-500 text-xs">to</span>
+                            <div class="flex items-center gap-1">
+                                <button on:click={() => stepField('recurrence_max_days', -1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
+                                <input type="number" bind:value={form.recurrence_max_days} class="w-14 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                                <button on:click={() => stepField('recurrence_max_days', 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                {/if}
 
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" bind:checked={form.overtime_eligible} class="w-4 h-4 rounded accent-indigo-500" />
                     <span class="text-sm text-slate-300">Allow overtime scheduling (extend into non-work hours when urgent)</span>
-                </label>
-
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" bind:checked={form.is_one_off} class="w-4 h-4 rounded accent-indigo-500" />
-                    <span class="text-sm text-slate-300">One-off task (deactivates after completion)</span>
                 </label>
 
                 <div>
@@ -177,10 +260,21 @@
 
             <div class="flex gap-2 px-5 py-4 border-t border-slate-700">
                 <button on:click={() => dispatch('close')} class="flex-1 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-slate-200 rounded transition-colors">Cancel</button>
-                <button on:click={submit} disabled={!form.title.trim()} class="flex-1 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded font-semibold transition-colors">
+                <button on:click={submit} disabled={!form.title.trim() || (form.schedule_type === 'deep_work' && form.scheduled_days.length === 0)} class="flex-1 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded font-semibold transition-colors">
                     {task ? 'Save Changes' : 'Create Task'}
                 </button>
             </div>
         </div>
     </div>
 {/if}
+
+<style>
+    @keyframes pulse-once {
+        0%   { transform: scale(1);    opacity: 1; }
+        40%  { transform: scale(1.07); opacity: 0.7; }
+        100% { transform: scale(1);    opacity: 1; }
+    }
+    :global(.pulse-once) {
+        animation: pulse-once 0.5s ease-out;
+    }
+</style>

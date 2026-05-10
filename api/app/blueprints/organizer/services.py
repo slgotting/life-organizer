@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from app.blueprints.organizer.models import Task, UserConfig
+from app.blueprints.organizer.models import Task, UserConfig, WorkSession
 
 URGENCY_RANK  = {'overdue': 0, 'time_to_do': 1, 'needs_doing': 2, 'upcoming': 3}
 PRIORITY_RANK = {'high': 0, 'medium': 1, 'low': 2}
@@ -58,12 +58,22 @@ def _build_pools(cfg, date, now=None):
     return pools
 
 
+def _days_elapsed_on_schedule(scheduled_days, today, week_start):
+    count, d = 0, week_start
+    while d <= today:
+        if d.weekday() in (scheduled_days or []):
+            count += 1
+        d += timedelta(days=1)
+    return count
+
+
 def build_schedule(user_id, days=7, tz_offset_minutes=0):
     cfg = get_or_create_config(user_id)
     tasks = list(Task.objects(user_id=user_id, is_active=True))
     now = datetime.utcnow() - timedelta(minutes=tz_offset_minutes)
     today = now.replace(hour=0, minute=0, second=0, microsecond=0)
     window_end = today + timedelta(days=days)
+    week_start = today - timedelta(days=today.weekday())
 
     day_structs = []
     for i in range(days):
@@ -76,11 +86,26 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
             'tasks': [],
         })
 
+    deep_tasks = [t for t in tasks if (t.schedule_type or 'recurring') == 'deep_work']
+    recurring_tasks = [t for t in tasks if (t.schedule_type or 'recurring') != 'deep_work']
+
+    actual_min_by_task = {}
+    if deep_tasks:
+        deep_ids = [str(t.id) for t in deep_tasks]
+        for s in WorkSession.objects(
+            user_id=user_id,
+            task_id__in=deep_ids,
+            start_time__gte=week_start,
+            start_time__lt=week_start + timedelta(days=7),
+            end_time__ne=None,
+        ):
+            actual_min_by_task[s.task_id] = actual_min_by_task.get(s.task_id, 0) + (s.duration_min or 0)
+
     # next_eligible: earliest date each task can next be scheduled
     # virtual_last_done: last planned completion (for urgency display on re-scheduled tasks)
     next_eligible = {}
     virtual_last_done = {}
-    for task in tasks:
+    for task in recurring_tasks:
         tid = str(task.id)
         virtual_last_done[tid] = task.last_done
         if task.last_done:
@@ -96,8 +121,33 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
                 task.snoozed_until = None
                 task.save()
 
+    # Pre-pass: place deep work tasks on their scheduled days-of-week.
+    for task in deep_tasks:
+        tid = str(task.id)
+        actual_min = actual_min_by_task.get(tid, 0)
+        elapsed = _days_elapsed_on_schedule(task.scheduled_days, today, week_start)
+        target_min = task.daily_target_min or round((task.min_duration_min + task.max_duration_min) / 2)
+        for ds in day_structs:
+            if ds['date'].weekday() not in (task.scheduled_days or []):
+                continue
+            urgency = task.urgency_deep_work(actual_min, elapsed) if ds['date'] <= today else 'upcoming'
+            if task.section_id in ds['pools'] and ds['pools'][task.section_id] >= task.min_duration_min:
+                ds['tasks'].append({
+                    'id': tid,
+                    'title': task.title,
+                    'task_type': task.task_type,
+                    'section_id': task.section_id,
+                    'urgency': urgency,
+                    'min_duration_min': target_min,
+                    'max_duration_min': target_min,
+                    'overtime': False,
+                    'is_deep_work': True,
+                    'daily_target_min': target_min,
+                })
+                ds['pools'][task.section_id] = max(0, ds['pools'][task.section_id] - target_min)
+
     # Pre-pass: place pinned tasks on their designated days before greedy runs.
-    for task in tasks:
+    for task in recurring_tasks:
         if not task.pinned_dates:
             continue
         tid = str(task.id)
@@ -125,7 +175,7 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
                         'overtime': False,
                         'pinned': True,
                     })
-                    ds['pools'][task.section_id] = max(0, ds['pools'][task.section_id] - task.max_duration_min)
+                    ds['pools'][task.section_id] = max(0, ds['pools'][task.section_id] - round((task.min_duration_min + task.max_duration_min) / 2))
                     virtual_last_done[tid] = ds['date']
                     next_eligible[tid] = ds['date'] + timedelta(days=task.recurrence_min_days)
                     placed_any = True
@@ -141,7 +191,7 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
         while True:
             best = None
             best_score = float('inf')
-            for task in tasks:
+            for task in recurring_tasks:
                 tid = str(task.id)
                 if next_eligible[tid] > ds['date']:
                     continue
@@ -169,13 +219,14 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
                 'max_duration_min': best.max_duration_min,
                 'overtime': False,
             })
-            ds['pools'][best.section_id] = max(0, ds['pools'][best.section_id] - best.max_duration_min)
+            ds['pools'][best.section_id] = max(0, ds['pools'][best.section_id] - round((best.min_duration_min + best.max_duration_min) / 2))
             virtual_last_done[tid] = ds['date']
             next_eligible[tid] = ds['date'] + timedelta(days=best.recurrence_min_days)
 
-    # Overload: urgent tasks that could not be placed anywhere (no capacity)
+    # Overload: urgent recurring tasks unplaced, or deep work tasks missing their scheduled day today
     placed_ids = {t['id'] for ds in day_structs for t in ds['tasks']}
-    overload_warning = any(
+    today_placed_ids = {t['id'] for t in day_structs[0]['tasks']}
+    recurring_overload = any(
         task.urgency_at(today) in ('overdue', 'time_to_do')
         and task.section_id
         and str(task.id) not in placed_ids
@@ -183,8 +234,15 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
             datetime.strptime(d, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0) >= today
             for d in (task.pinned_dates or [])
         )
-        for task in tasks
+        for task in recurring_tasks
     )
+    deep_work_overload = any(
+        today.weekday() in (task.scheduled_days or [])
+        and task.section_id
+        and str(task.id) not in today_placed_ids
+        for task in deep_tasks
+    )
+    overload_warning = recurring_overload or deep_work_overload
 
     schedule = []
     for ds in day_structs:
@@ -218,7 +276,10 @@ def check_capacity_warning(user_id):
 
     weekly_demand = 0
     for task in tasks:
-        if task.recurrence_max_days > 0:
+        if (task.schedule_type or 'recurring') == 'deep_work':
+            target = task.daily_target_min or round((task.min_duration_min + task.max_duration_min) / 2)
+            weekly_demand += target * len(task.scheduled_days or [])
+        elif task.recurrence_max_days > 0:
             times_per_week = 7.0 / task.recurrence_max_days
             weekly_demand += times_per_week * task.min_duration_min
 

@@ -28,6 +28,10 @@ class Task(me.Document):
     priority = me.StringField(default='medium', choices=['high', 'medium', 'low'])
     overtime_eligible = me.BooleanField(default=False)
     created_at = me.DateTimeField(default=datetime.utcnow)
+    schedule_type = me.StringField(default='recurring', choices=['recurring', 'deep_work'])
+    scheduled_days = me.ListField(me.IntField(), default=list)
+    daily_target_min = me.IntField(default=None)
+    daily_target_manual = me.BooleanField(default=False)
 
     def urgency_at(self, reference_dt=None):
         ref = reference_dt or datetime.utcnow()
@@ -42,6 +46,20 @@ class Task(me.Document):
         if days_since >= min_d + window * 2 / 3:
             return 'time_to_do'
         if days_since >= min_d + window * 1 / 3:
+            return 'needs_doing'
+        return 'upcoming'
+
+    def urgency_deep_work(self, actual_min, days_elapsed_on_schedule):
+        target = self.daily_target_min or 0
+        expected = days_elapsed_on_schedule * target
+        if expected <= 0:
+            return 'upcoming'
+        ratio = actual_min / expected
+        if ratio < 0.5:
+            return 'overdue'
+        if ratio < 0.75:
+            return 'time_to_do'
+        if ratio < 1.0:
             return 'needs_doing'
         return 'upcoming'
 
@@ -70,6 +88,10 @@ class Task(me.Document):
             'pinned_dates': list(self.pinned_dates or []),
             'overtime_eligible': self.overtime_eligible,
             'created_at': self.created_at.isoformat(),
+            'schedule_type': self.schedule_type or 'recurring',
+            'scheduled_days': list(self.scheduled_days or []),
+            'daily_target_min': self.daily_target_min,
+            'daily_target_manual': bool(self.daily_target_manual),
         }
 
 

@@ -12,6 +12,13 @@
         overdue:     'bg-red-900 text-red-300',
     };
 
+    const URGENCY_LEGEND = [
+        { label: 'Upcoming',    cls: 'bg-slate-700 text-slate-300'   },
+        { label: 'Needs Doing', cls: 'bg-yellow-900 text-yellow-300'  },
+        { label: 'Time To Do',  cls: 'bg-orange-900 text-orange-300'  },
+        { label: 'Overdue',     cls: 'bg-red-900 text-red-300'        },
+    ];
+
     const SECTION_PALETTE = [
         { leftBorder: 'border-indigo-500', label: 'text-indigo-400' },
         { leftBorder: 'border-violet-500', label: 'text-violet-400' },
@@ -92,6 +99,16 @@
     }
 </script>
 
+<div class="flex items-center gap-3 mb-2 flex-wrap">
+    {#each URGENCY_LEGEND as item}
+        <span class="px-1.5 py-0.5 text-xs rounded {item.cls}">{item.label}</span>
+    {/each}
+    <div class="flex items-center gap-1.5 ml-1">
+        <span class="inline-block w-3 h-3 rounded ring-1 ring-emerald-500/60 bg-slate-800"></span>
+        <span class="text-xs text-slate-500">Deep Task</span>
+    </div>
+</div>
+
 <div class="grid grid-cols-7 gap-1.5">
     {#each schedule as day}
         <div
@@ -128,12 +145,14 @@
                             {/if}
                             {#each group.tasks as t}
                                 <div
-                                    draggable="true"
-                                    on:dragstart={(e) => onDragStart(e, t.id, day.date)}
-                                    on:dragend={onDragEnd}
+                                    draggable={!t.is_deep_work}
+                                    on:dragstart={t.is_deep_work ? null : (e) => onDragStart(e, t.id, day.date)}
+                                    on:dragend={t.is_deep_work ? null : onDragEnd}
                                     on:click={() => dispatch('edit', t.id)}
-                                    class="px-1 py-0.5 rounded text-xs {URGENCY_COLORS[t.urgency] ?? URGENCY_COLORS.upcoming} truncate cursor-grab active:cursor-grabbing select-none transition-opacity {dragTaskId === t.id ? 'opacity-30' : ''}"
-                                    title="{t.title} · {fmtRange(t.min_duration_min, t.max_duration_min)}">
+                                    class="px-1 py-0.5 rounded text-xs {URGENCY_COLORS[t.urgency] ?? URGENCY_COLORS.upcoming} truncate select-none transition-opacity
+                                        {t.is_deep_work ? 'cursor-pointer ring-1 ring-emerald-500/40' : 'cursor-grab active:cursor-grabbing'}
+                                        {dragTaskId === t.id ? 'opacity-30' : ''}"
+                                    title="{t.title} · {t.is_deep_work ? `${t.daily_target_min}m/day` : fmtRange(t.min_duration_min, t.max_duration_min)}">
                                     {t.title}
                                 </div>
                             {/each}

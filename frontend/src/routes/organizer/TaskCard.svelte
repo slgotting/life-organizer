@@ -24,12 +24,18 @@
 
     const PRESETS = [1, 5, 15, 30, 60];
 
+    const DAY_ABBR = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
     $: isCompleting = completingId === task.id;
     $: urgency = URGENCY[task.urgency] ?? URGENCY.upcoming;
     $: isActive = activeSessionTaskId === task.id;
     $: sectionName = sections.find(s => s.id === task.section_id)?.name ?? '';
     $: daysSince = task.days_since != null ? `${task.days_since}d ago` : 'Never done';
     $: priorityStyle = PRIORITY_STYLE[task.priority] ?? null;
+    $: isDeepWork = task.schedule_type === 'deep_work';
+    $: scheduledDaysLabel = isDeepWork && task.scheduled_days?.length
+        ? task.scheduled_days.map(d => DAY_ABBR[d]).join(' ')
+        : '';
     $: if (isActive) startOpen = false;
 
     let startOpen = false;
@@ -90,16 +96,22 @@
     {/if}
 
     <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
-        <span title="Task type">
-            {#if task.task_type === 'deep'}
-                <span class="text-indigo-400">● Deep</span>
+        {#if isDeepWork}
+            <span class="text-emerald-400">◎ Deep Task</span>
+        {/if}
+        <span title="Duration">
+            {#if isDeepWork && task.daily_target_min}
+                {task.daily_target_min}m/day
             {:else}
-                <span class="text-cyan-400">● Filler</span>
+                {fmtRange(task.min_duration_min, task.max_duration_min)}
             {/if}
         </span>
-        <span title="Duration">{fmtRange(task.min_duration_min, task.max_duration_min)}</span>
-        {#if !compact}<span title="Recurrence">every {task.recurrence_min_days}–{task.recurrence_max_days}d</span>{/if}
-        <span title="Last done">{daysSince}</span>
+        {#if !compact && isDeepWork && scheduledDaysLabel}
+            <span title="Scheduled days" class="text-emerald-600">{scheduledDaysLabel}</span>
+        {:else if !compact && !isDeepWork}
+            <span title="Recurrence">every {task.recurrence_min_days}–{task.recurrence_max_days}d</span>
+        {/if}
+        {#if !isDeepWork}<span title="Last done">{daysSince}</span>{/if}
         {#if !compact && sectionName}<span class="text-slate-400">{sectionName}</span>{/if}
         {#if priorityStyle}<span class={priorityStyle.cls}>{priorityStyle.label}</span>{/if}
         {#if task.overtime_eligible}<span class="text-amber-500">OT</span>{/if}
@@ -116,9 +128,8 @@
                 </button>
             {:else}
                 <button
-                    on:click={() => { if (!activeSessionTaskId) startOpen = !startOpen; }}
-                    disabled={!!activeSessionTaskId}
-                    class="w-full {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-indigo-700 hover:bg-indigo-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded transition-colors">
+                    on:click={() => startOpen = !startOpen}
+                    class="w-full {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-indigo-700 hover:bg-indigo-600 text-white rounded transition-colors">
                     Start
                 </button>
             {/if}
@@ -158,7 +169,7 @@
 
         <button
             on:click={() => dispatch('complete', task)}
-            disabled={isCompleting || (!isActive && !!activeSessionTaskId)}
+            disabled={isCompleting}
             class="px-3 {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 rounded transition-colors whitespace-nowrap">
             {#if isCompleting}
                 <span class="flex gap-1 items-center justify-center">

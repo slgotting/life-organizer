@@ -133,6 +133,10 @@ app.register_blueprint(example_bp)
 
 3. Append new route signatures to `context/api_routes.py`.
 
+## "How It Works" Page
+
+The file `frontend/src/routes/how-it-works/+page.svelte` is a living user-facing reference that documents how the organizer works. **Whenever a feature is added, changed, or removed, update this page to reflect the current behaviour.** The page is data-driven — all content lives in the `SECTIONS` array at the top of the script block. Add, edit, or remove entries there; do not touch the template markup unless the structure itself needs to change.
+
 ## Adding a New Frontend Route
 
 1. Use `frontend/src/routes/example` as the template.

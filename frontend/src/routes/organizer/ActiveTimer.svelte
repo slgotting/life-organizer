@@ -1,5 +1,7 @@
 <script>
-    import { createEventDispatcher, onDestroy } from 'svelte';
+    import { createEventDispatcher, onMount, onDestroy } from 'svelte';
+    import { Capacitor } from '@capacitor/core';
+    import { KeepAwake } from '@capacitor-community/keep-awake';
     export let session;
     export let task;
     export let initialTargetMin = null;
@@ -13,6 +15,28 @@
     let silenced = false;
     let beepInterval;
     let audioCtx;
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+        if (!('wakeLock' in navigator)) return;
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => { wakeLock = null; });
+        } catch (_) {}
+    }
+
+    function onVisibilityChange() {
+        if (document.visibilityState === 'visible') requestWakeLock();
+    }
+
+    onMount(async () => {
+        if (Capacitor.isNativePlatform()) {
+            try { await KeepAwake.keepAwake(); } catch (_) {}
+        } else {
+            requestWakeLock();
+            document.addEventListener('visibilitychange', onVisibilityChange);
+        }
+    });
 
     function beep() {
         try {
@@ -68,6 +92,12 @@
     onDestroy(() => {
         clearInterval(interval);
         clearInterval(beepInterval);
+        if (Capacitor.isNativePlatform()) {
+            try { KeepAwake.allowSleep(); } catch (_) {}
+        } else {
+            wakeLock?.release();
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        }
     });
 
     function fmt(sec) {

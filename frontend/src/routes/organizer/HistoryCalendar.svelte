@@ -4,6 +4,7 @@
     export let timeBlocks = {};
     export let sections = [];
     export let days = [];
+    export let tasks = [];
 
     const dispatch = createEventDispatcher();
 
@@ -66,10 +67,54 @@
         return m ? `${h}h ${m}m` : `${h}h`;
     }
 
-    // Popover state
+    // Edit popover state
     let popover = null;
     let editStart = '';
     let editEnd = '';
+
+    // Create popover state
+    let createPopover = null;
+    let createTaskId = '';
+    let createStart = '';
+    let createEnd = '';
+
+    $: createDurationMin = (createStart && createEnd && new Date(createEnd) > new Date(createStart))
+        ? Math.round((new Date(createEnd) - new Date(createStart)) / 60000)
+        : null;
+
+    function onColumnClick(e, day) {
+        if (e.target.closest('[role="button"]')) return;
+        e.stopPropagation();
+        const MARGIN = 12, W = 260, H = 300;
+        let x = e.clientX + MARGIN;
+        let y = e.clientY + MARGIN;
+        if (x + W > window.innerWidth  - MARGIN) x = e.clientX - W - MARGIN;
+        if (y + H > window.innerHeight - MARGIN) y = e.clientY - H - MARGIN;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+        const clickedHour = minHour + ratio * totalHours;
+        const hour = Math.min(23, Math.floor(clickedHour));
+        const min = Math.round(((clickedHour - hour) * 60) / 15) * 15;
+        const pad = n => String(n).padStart(2, '0');
+        const h2 = min >= 60 ? hour + 1 : hour;
+        const m2 = min >= 60 ? 0 : min;
+        createStart = `${day.dateStr}T${pad(h2)}:${pad(m2)}`;
+        const endDate = new Date(`${day.dateStr}T${pad(h2)}:${pad(m2)}:00`);
+        endDate.setMinutes(endDate.getMinutes() + 30);
+        createEnd = `${endDate.getFullYear()}-${pad(endDate.getMonth()+1)}-${pad(endDate.getDate())}T${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`;
+        createTaskId = tasks[0]?.id ?? '';
+        createPopover = { x, y };
+    }
+
+    function saveCreate() {
+        if (!createTaskId || !createStart || !createEnd || !createDurationMin || createDurationMin <= 0) return;
+        dispatch('createsession', {
+            taskId: createTaskId,
+            startTime: new Date(createStart).toISOString(),
+            endTime: new Date(createEnd).toISOString(),
+        });
+        createPopover = null;
+    }
 
     function toLocalDatetimeInput(utcIsoStr) {
         const d = new Date(utcIsoStr + 'Z');
@@ -93,7 +138,7 @@
         editEnd = toLocalDatetimeInput(session.end_time);
     }
 
-    function closePopover() { popover = null; }
+    function closePopover() { popover = null; createPopover = null; }
 
     function saveSessionEdit() {
         dispatch('updatesession', {
@@ -145,7 +190,7 @@
 
         <!-- Day columns -->
         {#each days as day}
-            <div class="flex-1 relative border-l border-slate-800 min-w-0">
+            <div class="flex-1 relative border-l border-slate-800 min-w-0 cursor-crosshair" on:click={(e) => onColumnClick(e, day)}>
                 <!-- Hour grid lines -->
                 {#each hourTicks as h}
                     <div
@@ -243,6 +288,52 @@
                     </svg>
                 </button>
             </div>
+        </div>
+    </div>
+{/if}
+
+{#if createPopover}
+    <div
+        role="dialog"
+        on:click|stopPropagation
+        class="fixed z-50 w-64 rounded-lg border border-slate-600 bg-slate-900 shadow-2xl p-3 space-y-2"
+        style="left: {createPopover.x}px; top: {createPopover.y}px;">
+        <div class="flex items-center justify-between">
+            <span class="font-semibold text-slate-100 text-sm">Log Session</span>
+            <button on:click={closePopover} class="shrink-0 text-slate-500 hover:text-slate-300 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="space-y-0.5">
+            <label class="text-xs text-slate-500 block">Task</label>
+            <select bind:value={createTaskId} on:click|stopPropagation
+                class="w-full text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500">
+                {#each tasks as t}
+                    <option value={t.id}>{t.title}</option>
+                {/each}
+            </select>
+        </div>
+        <div class="space-y-1.5">
+            <div class="space-y-0.5">
+                <label class="text-xs text-slate-500 block">Start</label>
+                <input type="datetime-local" bind:value={createStart} on:click|stopPropagation
+                    class="w-full text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+            <div class="space-y-0.5">
+                <label class="text-xs text-slate-500 block">End</label>
+                <input type="datetime-local" bind:value={createEnd} on:click|stopPropagation
+                    class="w-full text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500" />
+            </div>
+            {#if createDurationMin !== null}
+                <div class="text-xs text-slate-400">{fmtDuration(createDurationMin)}</div>
+            {/if}
+            <button on:click={saveCreate}
+                disabled={!createTaskId || !createDurationMin || createDurationMin <= 0}
+                class="w-full text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded px-2 py-1 font-semibold transition-colors">
+                Log Session
+            </button>
         </div>
     </div>
 {/if}

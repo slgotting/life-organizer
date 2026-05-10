@@ -331,8 +331,21 @@
                 } : s),
             };
             toast.success('Session updated');
+            refreshSchedule();
         } else {
             toast.error('Failed to update session');
+        }
+    }
+
+    async function createSession(e) {
+        const { taskId, startTime, endTime } = e.detail;
+        const res = await api('/organizer/sessions', 'POST', { task_id: taskId, start_time: startTime, end_time: endTime });
+        if (res?.success) {
+            historyData = { ...historyData, sessions: [...historyData.sessions, res.session] };
+            toast.success('Session logged');
+            refreshSchedule();
+        } else {
+            toast.error('Failed to log session');
         }
     }
 
@@ -342,6 +355,7 @@
         if (res?.success) {
             historyData = { ...historyData, sessions: historyData.sessions.filter(s => s.id !== sessionId) };
             toast.success('Session deleted');
+            refreshSchedule();
         } else {
             toast.error('Failed to delete session');
         }
@@ -681,9 +695,11 @@
                         sessions={historyData.sessions}
                         timeBlocks={historyData.time_blocks}
                         sections={historyData.sections}
+                        {tasks}
                         days={historyDays}
                         on:updatesession={updateSession}
-                        on:deletesession={deleteSession} />
+                        on:deletesession={deleteSession}
+                        on:createsession={createSession} />
                 </div>
             {/if}
         </div>

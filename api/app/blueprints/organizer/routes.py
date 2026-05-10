@@ -261,6 +261,48 @@ def update_session(session_id):
     return jsonify({'success': True, 'session': session.to_dict()})
 
 
+@bp.route('/sessions', methods=['POST'])
+@verify_token
+def create_session():
+    uid = _user_id(request.headers)
+    if not uid:
+        return jsonify({'success': False}), 401
+    data = request.get_json() or {}
+    def parse_iso(s):
+        return datetime.strptime(s.rstrip('Z').split('.')[0], '%Y-%m-%dT%H:%M:%S')
+    task_id = data.get('task_id')
+    if not task_id:
+        return jsonify({'success': False}), 400
+    task = Task.objects(id=task_id, user_id=uid).first()
+    if not task:
+        return jsonify({'success': False}), 404
+    start_time = parse_iso(data['start_time'])
+    end_time = parse_iso(data['end_time'])
+    session = WorkSession(
+        user_id=uid,
+        task_id=task_id,
+        start_time=start_time,
+        end_time=end_time,
+        duration_min=(end_time - start_time).total_seconds() / 60,
+    )
+    session.save()
+    cfg = get_or_create_config(uid)
+    section = next((s for s in cfg.sections if s.id == task.section_id), None)
+    return jsonify({
+        'success': True,
+        'session': {
+            'id': str(session.id),
+            'task_id': task_id,
+            'task_title': task.title,
+            'section_id': task.section_id or '',
+            'section_name': section.name if section else '',
+            'start_time': session.start_time.isoformat(),
+            'end_time': session.end_time.isoformat(),
+            'duration_min': round(session.duration_min or 0),
+        },
+    }), 201
+
+
 @bp.route('/sessions/<session_id>', methods=['DELETE'])
 @verify_token
 def delete_session(session_id):

@@ -36,6 +36,7 @@
     let editingTask = null;
     let quickAddOpen = false;
     let assignDayOpen = false;
+    let weekDirty = false;
     let historyData = null;
     let historyLoading = false;
     let statsData = null;
@@ -158,6 +159,38 @@
             await refreshSchedule();
             toast.success(removing ? `"${task.title}" removed from ${date}` : `"${task.title}" scheduled for ${date}`);
         }
+    }
+
+    async function assignFromWeekGrid(e) {
+        const { taskId, date: targetDate, sourceDate } = e.detail;
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const current = task.pinned_dates ?? [];
+        const pinned_dates = [...current.filter(d => d !== sourceDate), ...(current.includes(targetDate) ? [] : [targetDate])];
+
+        const scheduleTask = { id: task.id, title: task.title, urgency: task.urgency, priority: task.priority, section_id: task.section_id, min_duration_min: task.min_duration_min, max_duration_min: task.max_duration_min };
+        const prevSchedule = schedule;
+        schedule = schedule.map(day => {
+            if (day.date === sourceDate) return { ...day, tasks: day.tasks.filter(t => t.id !== taskId) };
+            if (day.date === targetDate) return { ...day, tasks: [...day.tasks, scheduleTask] };
+            return day;
+        });
+
+        const res = await api(`${config.organizerTasksEndpoint}/${taskId}`, 'PUT', { pinned_dates });
+        if (res?.success) {
+            tasks = tasks.map(t => t.id === taskId ? res.task : t);
+            weekDirty = true;
+            toast.success(`"${task.title}" moved to ${targetDate}`);
+        } else {
+            schedule = prevSchedule;
+            toast.error('Failed to move task');
+        }
+    }
+
+    async function recomputeSchedule() {
+        await refreshSchedule();
+        weekDirty = false;
     }
 
     async function stopTask() {
@@ -492,7 +525,19 @@
                     Assign to Day
                 </button>
             </div>
-            <ScheduleGrid {schedule} {sections} />
+            {#if weekDirty}
+                <div class="flex justify-center">
+                    <button
+                        on:click={recomputeSchedule}
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg shadow-lg transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Recompute Schedule
+                    </button>
+                </div>
+            {/if}
+            <ScheduleGrid {schedule} {sections} on:assign={assignFromWeekGrid} on:edit={(e) => { editingTask = tasks.find(t => t.id === e.detail) ?? null; taskModalOpen = true; }} />
         </div>
 
     {:else if tab === 'tasks'}

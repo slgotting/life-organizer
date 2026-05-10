@@ -1,6 +1,9 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
     export let schedule = [];
     export let sections = [];
+
+    const dispatch = createEventDispatcher();
 
     const URGENCY_COLORS = {
         upcoming:    'bg-slate-700 text-slate-300',
@@ -52,13 +55,52 @@
         if (!available) return 0;
         return Math.min(100, Math.round((scheduled / available) * 100));
     }
+
+    let dragTaskId = null;
+    let dragSourceDate = null;
+    let dragOverDate = null;
+
+    function onDragStart(e, taskId, sourceDate) {
+        dragTaskId = taskId;
+        dragSourceDate = sourceDate;
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function onDragOver(e, date) {
+        e.preventDefault();
+        dragOverDate = date;
+    }
+
+    function onDragLeave(e) {
+        if (!e.currentTarget.contains(e.relatedTarget)) dragOverDate = null;
+    }
+
+    function onDrop(e, date) {
+        e.preventDefault();
+        if (dragTaskId && date !== dragSourceDate) {
+            dispatch('assign', { taskId: dragTaskId, date, sourceDate: dragSourceDate });
+        }
+        dragTaskId = null;
+        dragSourceDate = null;
+        dragOverDate = null;
+    }
+
+    function onDragEnd() {
+        dragTaskId = null;
+        dragSourceDate = null;
+        dragOverDate = null;
+    }
 </script>
 
 <div class="grid grid-cols-7 gap-1.5">
     {#each schedule as day}
-        <div class="rounded-lg border {day.overloaded ? 'border-red-700/60 bg-red-900/10' : day.is_work_day ? 'border-slate-700 bg-slate-800/40' : 'border-slate-800 bg-slate-900/20'} p-2 min-h-[120px]">
+        <div
+            on:dragover={(e) => onDragOver(e, day.date)}
+            on:dragleave={onDragLeave}
+            on:drop={(e) => onDrop(e, day.date)}
+            class="rounded-lg border transition-colors {dragOverDate === day.date ? 'border-indigo-500 bg-indigo-900/20' : day.overloaded ? 'border-red-700/60 bg-red-900/10' : day.is_work_day ? 'border-slate-700 bg-slate-800/40' : 'border-slate-800 bg-slate-900/20'} p-2 min-h-[120px]">
             <div class="mb-1.5">
-                <div class="text-xs font-semibold {day.overloaded ? 'text-red-400' : 'text-slate-300'}">{day.day_name.slice(0, 3)}</div>
+                <div class="text-xs font-semibold {dragOverDate === day.date ? 'text-indigo-300' : day.overloaded ? 'text-red-400' : 'text-slate-300'}">{day.day_name.slice(0, 3)}</div>
                 <div class="text-xs text-slate-500">{day.date.slice(5)}</div>
             </div>
 
@@ -72,7 +114,9 @@
             {/if}
 
             {#if day.tasks.length === 0 && day.is_work_day}
-                <span class="text-xs text-slate-600 italic">Free</span>
+                <span class="text-xs {dragOverDate === day.date ? 'text-indigo-400' : 'text-slate-600 italic'}">
+                    {dragOverDate === day.date ? '+ drop here' : 'Free'}
+                </span>
             {:else if !day.is_work_day}
                 <span class="text-xs text-slate-700 italic">Off</span>
             {:else}
@@ -83,7 +127,13 @@
                                 <div class="text-[9px] font-semibold {group.palette.label} truncate leading-tight">{group.section.name}</div>
                             {/if}
                             {#each group.tasks as t}
-                                <div class="px-1 py-0.5 rounded text-xs {URGENCY_COLORS[t.urgency] ?? URGENCY_COLORS.upcoming} truncate" title="{t.title} · {fmtRange(t.min_duration_min, t.max_duration_min)}">
+                                <div
+                                    draggable="true"
+                                    on:dragstart={(e) => onDragStart(e, t.id, day.date)}
+                                    on:dragend={onDragEnd}
+                                    on:click={() => dispatch('edit', t.id)}
+                                    class="px-1 py-0.5 rounded text-xs {URGENCY_COLORS[t.urgency] ?? URGENCY_COLORS.upcoming} truncate cursor-grab active:cursor-grabbing select-none transition-opacity {dragTaskId === t.id ? 'opacity-30' : ''}"
+                                    title="{t.title} · {fmtRange(t.min_duration_min, t.max_duration_min)}">
                                     {t.title}
                                 </div>
                             {/each}

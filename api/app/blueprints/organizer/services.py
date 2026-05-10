@@ -108,6 +108,7 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
             if target < today:
                 expired.append(date_str)
                 continue
+            next_eligible[tid] = max(next_eligible[tid], target)
             for ds in day_structs:
                 if ds['date'] != target:
                     continue
@@ -178,6 +179,10 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
         task.urgency_at(today) in ('overdue', 'time_to_do')
         and task.section_id
         and str(task.id) not in placed_ids
+        and not any(
+            datetime.strptime(d, '%Y-%m-%d').replace(hour=0, minute=0, second=0, microsecond=0) >= today
+            for d in (task.pinned_dates or [])
+        )
         for task in tasks
     )
 

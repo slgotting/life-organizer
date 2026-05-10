@@ -113,7 +113,7 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Schedule Type</label>
                     <div class="flex gap-0.5 rounded-lg bg-slate-800 border border-slate-600 p-0.5">
-                        {#each [['recurring','Recurring'], ['deep_work','Deep Task'], ['one_off','One-off']] as [val, label]}
+                        {#each [['recurring','Recurring'], ['deep_work','Fixed'], ['one_off','One-off']] as [val, label]}
                             <button
                                 on:click={() => setScheduleMode(val)}
                                 class="flex-1 py-1.5 text-xs rounded font-medium transition-colors

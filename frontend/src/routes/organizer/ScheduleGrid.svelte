@@ -105,7 +105,7 @@
     {/each}
     <div class="flex items-center gap-1.5 ml-1">
         <span class="inline-block w-3 h-3 rounded ring-1 ring-emerald-500/60 bg-slate-800"></span>
-        <span class="text-xs text-slate-500">Deep Task</span>
+        <span class="text-xs text-slate-500">Fixed</span>
     </div>
 </div>
 

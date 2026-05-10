@@ -413,15 +413,21 @@
     $: todayTasks = schedule[0]?.tasks ?? [];
     $: todaySectionGroups = groupBySection(todayTasks);
 
-    const TABS = [
-        { id: 'today',     label: 'Today'      },
-        { id: 'week',      label: 'This Week'  },
-        { id: 'tasks',     label: 'All Tasks'  },
-        { id: 'recurring', label: 'Recurring'  },
-        { id: 'oneoff',    label: 'One-off'    },
-        { id: 'deepwork',  label: 'Deep Task'  },
-        { id: 'history',   label: 'History'    },
-        { id: 'stats',     label: 'Stats'      },
+    const TAB_GROUPS = [
+        [
+            { id: 'today',     label: 'Today'      },
+            { id: 'week',      label: 'This Week'  },
+        ],
+        [
+            { id: 'tasks',     label: 'All Tasks'  },
+            { id: 'deepwork',  label: 'Fixed'      },
+            { id: 'recurring', label: 'Recurring'  },
+            { id: 'oneoff',    label: 'One-off'    },
+        ],
+        [
+            { id: 'history',   label: 'History'    },
+            { id: 'stats',     label: 'Stats'      },
+        ],
     ];
 
     $: recurringTasks = tasks.filter(t => !t.is_one_off && (t.schedule_type || 'recurring') === 'recurring');
@@ -456,13 +462,17 @@
         </div>
     {/if}
 
-    <div class="flex gap-1 border-b border-slate-700">
-        {#each TABS as t}
-            <button
-                on:click={() => { tab = t.id; if (t.id === 'history' && !historyData) loadHistory(); if (t.id === 'stats' && !statsData) loadStats(); }}
-                class="px-4 py-2 text-sm font-medium transition-colors {tab === t.id ? 'text-indigo-400 border-b-2 border-indigo-500 -mb-px' : 'text-slate-400 hover:text-slate-200'}">
-                {t.label}
-            </button>
+    <div class="grid grid-cols-3 items-stretch border-b border-slate-700">
+        {#each TAB_GROUPS as group, gi}
+            <div class="flex gap-1 shrink-0 {gi === 1 ? 'justify-center' : gi === 2 ? 'justify-end' : ''}">
+                {#each group as t}
+                    <button
+                        on:click={() => { tab = t.id; if (t.id === 'history' && !historyData) loadHistory(); if (t.id === 'stats' && !statsData) loadStats(); }}
+                        class="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors {tab === t.id ? 'text-indigo-400 border-b-2 border-indigo-500 -mb-px' : 'text-slate-400 hover:text-slate-200'}">
+                        {t.label}
+                    </button>
+                {/each}
+            </div>
         {/each}
     </div>
 
@@ -596,7 +606,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                             </svg>
-                            New Deep Task
+                            New Fixed Task
                         </button>
                     {:else}
                         <button

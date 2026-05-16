@@ -4,7 +4,6 @@
     import { handleDeleteAccount } from "../../lib/auth";
     import { onMount } from "svelte";
     import { getFromLocalStorage } from "../../components/slg/lib/localStorage";
-    import Subscription from "../../components/Subscription/Subscription.svelte";
     import Button from "../../components/slg/primitives/Button.svelte";
 
     let deleteAccountModalOpen = false;
@@ -14,10 +13,22 @@
 
     let errorMessage = "";
 
+    const DEFAULT_PULSE_PREFS = { minGapMin: 30, gapMode: 'minimum' };
+    let pulsePrefs = { ...DEFAULT_PULSE_PREFS };
+
+    function loadPulsePrefs() {
+        pulsePrefs = { ...DEFAULT_PULSE_PREFS, ...JSON.parse(localStorage.getItem('pulsePrefs') || '{}') };
+    }
+
+    function savePulsePrefs() {
+        localStorage.setItem('pulsePrefs', JSON.stringify(pulsePrefs));
+    }
+
     onMount(() => {
         authData = getFromLocalStorage('auth')
         email = authData.user;
         deleteInputRequired = email;
+        loadPulsePrefs();
     });
 
 </script>
@@ -28,7 +39,42 @@
 
         <div class="divide-y divide-white/5 space-y-8">
 
-            <Subscription />
+            <div class="grid max-w-7xl grid-cols-1 gap-x-8 gap-y-10 px-4 py-16 sm:px-6 md:grid-cols-3 lg:px-8">
+                <div>
+                    <h2 class="text-base font-semibold leading-7 text-white">Pulse tasks</h2>
+                    <p class="mt-1 text-sm leading-6 text-gray-400">
+                        Controls how often pulse task reminders can appear, regardless of each task's individual interval.
+                    </p>
+                </div>
+                <div class="md:col-span-2 space-y-6">
+                    <div class="space-y-1.5">
+                        <label class="block text-sm font-medium text-slate-300">Minimum gap between any pulse tasks (minutes)</label>
+                        <p class="text-xs text-slate-500">After dismissing any pulse task, no other pulse task will appear for this many minutes.</p>
+                        <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            bind:value={pulsePrefs.minGapMin}
+                            on:change={savePulsePrefs}
+                            disabled={pulsePrefs.gapMode !== 'minimum'}
+                            class="w-32 bg-slate-800 border border-slate-600 rounded px-3 py-1.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed" />
+                    </div>
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-slate-300">Timing preference</label>
+                        <p class="text-xs text-slate-500">When a task uses Deterministic intervals, the global gap may cause the actual interval to drift from the target average. Choose which behaviour to prefer.</p>
+                        <div class="flex gap-2">
+                            {#each [{ value: 'minimum', label: 'Enforce minimum gap', desc: 'Global cooldown applies; deterministic tasks may drift.' }, { value: 'deterministic', label: 'Prefer deterministic', desc: 'No global gap; each task follows its own interval exactly.' }] as opt}
+                                <button
+                                    on:click={() => { pulsePrefs = { ...pulsePrefs, gapMode: opt.value }; savePulsePrefs(); }}
+                                    class="flex-1 text-left px-3 py-2.5 rounded-lg border text-sm transition-colors {pulsePrefs.gapMode === opt.value ? 'border-indigo-500 bg-indigo-500/10 text-slate-100' : 'border-slate-600 bg-slate-800/50 text-slate-400 hover:border-slate-500'}">
+                                    <div class="font-medium">{opt.label}</div>
+                                    <div class="text-xs mt-0.5 {pulsePrefs.gapMode === opt.value ? 'text-slate-400' : 'text-slate-600'}">{opt.desc}</div>
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="grid max-w-7xl grid-cols-1 gap-x-8 gap-y-10 px-4 py-16 sm:px-6 md:grid-cols-3 lg:px-8">
                 <div>

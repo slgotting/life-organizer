@@ -153,6 +153,10 @@
         return JSON.parse(localStorage.getItem('pulseState') || '{}');
     }
 
+    function getPulsePrefs() {
+        return { minGapMin: 30, gapMode: 'minimum', ...JSON.parse(localStorage.getItem('pulsePrefs') || '{}') };
+    }
+
     function chooseNextInterval(task, lastIntervalMin) {
         const min = task.pulse_min_interval ?? 90;
         const max = task.pulse_max_interval ?? min;
@@ -165,12 +169,20 @@
 
     function computeReadyPulse({ tasks, sections }) {
         const state = getPulseLocalState();
+        const prefs = getPulsePrefs();
         const now = Date.now();
+        let lastAnyDismissAt = 0;
+        if (prefs.gapMode === 'minimum') {
+            for (const ts of Object.values(state)) {
+                if (ts.lastDismissedAt > lastAnyDismissAt) lastAnyDismissAt = ts.lastDismissedAt;
+            }
+        }
         return tasks.filter(task => {
             if (!isInSectionHours(task, sections)) return false;
             const ts = state[task.id];
-            if (!ts) return true;
-            return now >= ts.lastDismissedAt + ts.nextIntervalMin * 60000;
+            if (ts && now < ts.lastDismissedAt + ts.nextIntervalMin * 60000) return false;
+            if (prefs.gapMode === 'minimum' && now < lastAnyDismissAt + prefs.minGapMin * 60000) return false;
+            return true;
         });
     }
 

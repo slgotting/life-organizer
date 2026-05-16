@@ -69,7 +69,9 @@
 
 <div class="rounded-lg border {isActive ? 'border-emerald-600 bg-emerald-900/20' : isPulse ? 'border-violet-600/70 bg-violet-900/10 pulse-border' : 'border-slate-700 bg-slate-800/50'} {compact ? 'p-2 space-y-1' : 'p-3 space-y-2'} transition-colors">
     <div class="flex items-start gap-2">
-        <span class="mt-0.5 px-1.5 py-0.5 text-xs rounded {urgency.bg} {urgency.text} whitespace-nowrap shrink-0">{urgency.label}</span>
+        {#if !isPulse}
+            <span class="mt-0.5 px-1.5 py-0.5 text-xs rounded {urgency.bg} {urgency.text} whitespace-nowrap shrink-0">{urgency.label}</span>
+        {/if}
         <span class="{compact ? 'text-sm' : ''} font-medium text-slate-100 leading-snug">{task.title}</span>
         <div class="ml-auto flex items-center gap-1 shrink-0">
             <button title="Edit" on:click={() => dispatch('edit', task)} class="p-1 text-slate-400 hover:text-slate-200 rounded transition-colors">

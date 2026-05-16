@@ -517,8 +517,11 @@
                 {#each group as t}
                     <button
                         on:click={() => { tab = t.id; if (t.id === 'history' && !historyData) loadHistory(); if (t.id === 'stats' && !statsData) loadStats(); }}
-                        class="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors {tab === t.id ? 'text-indigo-400 border-b-2 border-indigo-500 -mb-px' : 'text-slate-400 hover:text-slate-200'}">
+                        class="px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors {tab === t.id ? 'text-indigo-400 border-b-2 border-indigo-500 -mb-px' : 'text-slate-400 hover:text-slate-200'} flex items-center gap-1.5">
                         {t.label}
+                        {#if t.id === 'pulse' && pulseTasks.length > 0}
+                            <span class="text-xs font-semibold px-1.5 py-0.5 rounded-full {tab === 'pulse' ? 'bg-violet-500/30 text-violet-300' : 'bg-slate-700 text-slate-400'}">{pulseTasks.length}</span>
+                        {/if}
                     </button>
                 {/each}
             </div>

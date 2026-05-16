@@ -32,8 +32,10 @@ class Task(me.Document):
     scheduled_days = me.ListField(me.IntField(), default=list)
     daily_target_min = me.IntField(default=None)
     daily_target_manual = me.BooleanField(default=False)
-    pulse_interval_min = me.IntField(default=120)
+    pulse_min_interval = me.IntField(default=None)
+    pulse_max_interval = me.IntField(default=None)
     pulse_duration_min = me.IntField(default=5)
+    pulse_deterministic = me.BooleanField(default=False)
 
     def urgency_at(self, reference_dt=None):
         ref = reference_dt or datetime.utcnow()
@@ -94,8 +96,10 @@ class Task(me.Document):
             'scheduled_days': list(self.scheduled_days or []),
             'daily_target_min': self.daily_target_min,
             'daily_target_manual': bool(self.daily_target_manual),
-            'pulse_interval_min': self.pulse_interval_min or 120,
+            'pulse_min_interval': self.pulse_min_interval or 90,
+            'pulse_max_interval': self.pulse_max_interval or (self.pulse_min_interval or 90),
             'pulse_duration_min': self.pulse_duration_min or 5,
+            'pulse_deterministic': bool(self.pulse_deterministic),
         }
 
 

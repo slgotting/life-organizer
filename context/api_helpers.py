@@ -144,7 +144,7 @@ class ReferringUser: ...
 
 # organizer/models.py
 class Section(me.EmbeddedDocument): ...
-class Task(me.Document): ...           # urgency_at(reference_dt), urgency_deep_work(actual_min, days_elapsed), to_dict(); schedule_type in [recurring, deep_work, pulse]; pulse tasks have pulse_interval_min, pulse_duration_min
+class Task(me.Document): ...           # urgency_at(reference_dt), urgency_deep_work(actual_min, days_elapsed), to_dict(); schedule_type in [recurring, deep_work, pulse]; pulse tasks have pulse_min_interval, pulse_max_interval, pulse_duration_min, pulse_deterministic
 class WorkSession(me.Document): ...    # to_dict()
 class UserConfig(me.Document): ...     # to_dict()
 

@@ -20,8 +20,10 @@
         scheduled_days: [],
         daily_target_min: 90,
         daily_target_manual: false,
-        pulse_interval_min: 120,
+        pulse_min_interval: 90,
+        pulse_max_interval: 150,
         pulse_duration_min: 5,
+        pulse_deterministic: false,
     };
 
     const PRIORITIES = [
@@ -80,7 +82,8 @@
         if (form.schedule_type === 'deep_work' && form.scheduled_days.length === 0) return;
         dispatch('save', {
             ...form,
-            pulse_interval_min: parseInt(form.pulse_interval_min) || 120,
+            pulse_min_interval: parseInt(form.pulse_min_interval) || 90,
+            pulse_max_interval: parseInt(form.pulse_max_interval) || 150,
             pulse_duration_min: parseInt(form.pulse_duration_min) || 5,
         });
     }
@@ -199,23 +202,35 @@
                 {#if form.schedule_type === 'pulse'}
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs text-slate-400 mb-2">Repeat every (minutes)</label>
-                            <div class="flex items-center gap-1">
-                                <button on:click={() => stepField('pulse_interval_min', -15, 5)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
-                                <input type="number" bind:value={form.pulse_interval_min} min="5" class="w-20 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
-                                <button on:click={() => stepField('pulse_interval_min', 15, 5)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
-                                <span class="text-slate-500 text-xs ml-1">min between reps</span>
+                            <label class="block text-xs text-slate-400 mb-2">Interval range (minutes between reps)</label>
+                            <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-1">
+                                    <button on:click={() => stepField('pulse_min_interval', -15, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
+                                    <input type="number" bind:value={form.pulse_min_interval} min="1" class="w-16 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                                    <button on:click={() => stepField('pulse_min_interval', 15, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                                </div>
+                                <span class="text-slate-500 text-xs">to</span>
+                                <div class="flex items-center gap-1">
+                                    <button on:click={() => stepField('pulse_max_interval', -15, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
+                                    <input type="number" bind:value={form.pulse_max_interval} min="1" class="w-16 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                                    <button on:click={() => stepField('pulse_max_interval', 15, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                                </div>
+                                <span class="text-slate-500 text-xs">min</span>
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs text-slate-400 mb-2">Duration per rep (minutes)</label>
                             <div class="flex items-center gap-1">
                                 <button on:click={() => stepField('pulse_duration_min', -1, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
-                                <input type="number" bind:value={form.pulse_duration_min} min="1" class="w-20 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                                <input type="number" bind:value={form.pulse_duration_min} min="1" class="w-16 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
                                 <button on:click={() => stepField('pulse_duration_min', 1, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
                                 <span class="text-slate-500 text-xs ml-1">min per rep</span>
                             </div>
                         </div>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" bind:checked={form.pulse_deterministic} class="w-4 h-4 rounded accent-violet-500" />
+                            <span class="text-sm text-slate-300">Deterministic</span>
+                        </label>
                     </div>
                 {/if}
 

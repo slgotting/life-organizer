@@ -104,7 +104,7 @@
         {/if}
         <span title="Duration">
             {#if isPulse}
-                {task.pulse_duration_min}m · every {task.pulse_interval_min}m
+                {task.pulse_duration_min}m · every {task.pulse_min_interval}{task.pulse_max_interval !== task.pulse_min_interval ? `–${task.pulse_max_interval}` : ''}m
             {:else if isDeepWork && task.daily_target_min}
                 {task.daily_target_min}m/day
             {:else}

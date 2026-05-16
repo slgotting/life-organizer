@@ -9,12 +9,14 @@
     import Footer from "../components/LandingPage/Footer.svelte";
     import { settingsModalOpenStore } from "../stores/settings";
     import { scheduleNotifications } from "../lib/notifications";
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import { authenticatedPostRequest, logoutUser, authenticatedJSONRequest } from "../lib/auth";
     import { handleApiResponse } from "../lib/api";
     import config, { buildServerEndpoint } from "../config/config";
     import { activeSessionStore } from "../stores/session";
+    import { pulseDataStore } from "../stores/pulse";
     import ActiveTimer from "./organizer/ActiveTimer.svelte";
+    import PulseBanner from "./organizer/PulseBanner.svelte";
 
     const urlParams = new URLSearchParams(window.location.search);
     const toastParam = urlParams.get("toast");
@@ -104,6 +106,59 @@
         }
     }
 
+    function isInSectionHours(task, sections) {
+        if (!task.section_id) return true;
+        const section = sections.find(s => s.id === task.section_id);
+        if (!section) return true;
+        const now = new Date();
+        const dow = String((now.getDay() + 6) % 7);
+        const dayConfig = (section.day_configs || {})[dow] || {};
+        const mode = dayConfig.mode;
+        if (!mode || mode === 'off') return false;
+        if (mode === 'duration') return true;
+        const currentHour = now.getHours() + now.getMinutes() / 60;
+        return currentHour >= (dayConfig.start_hour || 0) && currentHour < (dayConfig.end_hour || 24);
+    }
+
+    function getPulseLocalState() {
+        return JSON.parse(localStorage.getItem('pulseState') || '{}');
+    }
+
+    function chooseNextInterval(task, lastIntervalMin) {
+        const min = task.pulse_min_interval ?? 90;
+        const max = task.pulse_max_interval ?? min;
+        if (task.pulse_deterministic && lastIntervalMin !== null) {
+            const mid = (min + max) / 2;
+            return Math.max(min, Math.min(max, Math.round(2 * mid - lastIntervalMin)));
+        }
+        return Math.round(min + Math.random() * (max - min));
+    }
+
+    function computeReadyPulse({ tasks, sections }) {
+        const state = getPulseLocalState();
+        const now = Date.now();
+        return tasks.filter(task => {
+            if (!isInSectionHours(task, sections)) return false;
+            const ts = state[task.id];
+            if (!ts) return true;
+            return now >= ts.lastDismissedAt + ts.nextIntervalMin * 60000;
+        });
+    }
+
+    function dismissPulse(task) {
+        const state = getPulseLocalState();
+        const last = state[task.id];
+        const nextIntervalMin = chooseNextInterval(task, last?.nextIntervalMin ?? null);
+        state[task.id] = { lastDismissedAt: Date.now(), nextIntervalMin };
+        localStorage.setItem('pulseState', JSON.stringify(state));
+        readyPulseTasks = computeReadyPulse($pulseDataStore);
+    }
+
+    let readyPulseTasks = [];
+    let pulseCheckInterval;
+
+    $: readyPulseTasks = computeReadyPulse($pulseDataStore);
+
     onMount(async () => {
         if ($authStore.isAuthenticated) {
             try {
@@ -128,7 +183,12 @@
             const isOkRoute = path === '/' || nonAuthenticatedRoutes.some(r => path.startsWith(r));
             if (!isOkRoute) goto('/signin');
         }
+        pulseCheckInterval = setInterval(() => {
+            readyPulseTasks = computeReadyPulse($pulseDataStore);
+        }, 60000);
     });
+
+    onDestroy(() => clearInterval(pulseCheckInterval));
 </script>
 <svelte:head>
     <title>schedulr</title>
@@ -183,15 +243,20 @@
 </nav>
 
 <main class="pt-16 sm:pt-24 w-full min-h-screen text-sm sm:text-lg">
-    {#if $activeSessionStore.session && $activeSessionStore.task}
+    {#if readyPulseTasks.length > 0 || ($activeSessionStore.session && $activeSessionStore.task)}
         <div class="sticky top-14 z-20 bg-slate-950/80 backdrop-blur-sm border-b border-slate-800/50">
-            <div class="max-w-5xl mx-auto px-4 py-2">
-                <ActiveTimer
-                    session={$activeSessionStore.session}
-                    task={$activeSessionStore.task}
-                    initialTargetMin={$activeSessionStore.timerMin}
-                    on:stop={layoutStopTask}
-                    on:complete={layoutCompleteTask} />
+            <div class="max-w-5xl mx-auto px-4 py-2 space-y-2">
+                {#each readyPulseTasks as task (task.id)}
+                    <PulseBanner {task} on:dismiss={() => dismissPulse(task)} />
+                {/each}
+                {#if $activeSessionStore.session && $activeSessionStore.task}
+                    <ActiveTimer
+                        session={$activeSessionStore.session}
+                        task={$activeSessionStore.task}
+                        initialTargetMin={$activeSessionStore.timerMin}
+                        on:stop={layoutStopTask}
+                        on:complete={layoutCompleteTask} />
+                {/if}
             </div>
         </div>
     {/if}

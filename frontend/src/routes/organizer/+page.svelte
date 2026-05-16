@@ -4,6 +4,7 @@
     import { goto } from '$app/navigation';
     import { authStore } from '../../stores/auth';
     import { activeSessionStore } from '../../stores/session';
+    import { pulseDataStore } from '../../stores/pulse';
     import config, { buildServerEndpoint } from '../../config/config';
     import { authenticatedJSONRequest } from '../../lib/auth';
     import { handleApiResponse } from '../../lib/api';
@@ -426,7 +427,8 @@
             });
     }
 
-    $: sortedTasks = [...tasks].sort((a, b) => taskScore(a) - taskScore(b));
+    $: sortedTasks = [...tasks.filter(t => t.schedule_type !== 'pulse')].sort((a, b) => taskScore(a) - taskScore(b));
+    $: { pulseDataStore.set({ tasks: pulseTasks, sections }); }
 
     $: filteredTasks = selectedSectionId === null
         ? sortedTasks

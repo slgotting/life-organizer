@@ -13,7 +13,11 @@
                 },
                 {
                     label: 'Pulse',
-                    body: `A short task repeated at a fixed interval throughout each day — for example, physical therapy exercises every two hours. You set the interval (minutes between repetitions) and the duration per repetition. Pulse tasks appear in your Today view with a pulsing violet border to grab attention, and the card shows the duration and interval (e.g. "5m · every 120m"). They are placed automatically on every day that their section has a time block (or every day if no section is assigned). The interval and duration are also factored into your weekly capacity estimate.`,
+                    body: `A short task that repeats at a variable interval throughout the day — for example, physical therapy exercises every 90–150 minutes. You set an interval range (min and max minutes between reps) and a duration per rep. When a pulse task is ready, a violet pulsing banner appears at the top of every page; press Dismiss when you've done the rep and the next interval begins. Pulse tasks appear on any day their section has a time block, or all day if no section is assigned. They do not appear as cards in the Today view.`,
+                },
+                {
+                    label: '↳ Deterministic',
+                    body: `When Deterministic is checked, consecutive intervals are not independently random — they are balanced to maintain an average exactly equal to the midpoint of your range. If one interval is short (below the midpoint), the next is automatically lengthened to compensate, and vice versa. Over any two consecutive reps the average interval is always (min + max) / 2. Leave it unchecked for fully random intervals within the range.`,
                 },
                 {
                     label: 'One-off',

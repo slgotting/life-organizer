@@ -54,7 +54,7 @@
         const out = [];
         let i = 0;
         while (i < mapped.length) {
-            const cur = { ...mapped[i] };
+            const cur = { ...mapped[i], _sessions: [mapped[i]] };
             while (i + 1 < mapped.length) {
                 const nxt = mapped[i + 1];
                 const gapMin = (nxt.startH - cur.endH) * 60;
@@ -67,6 +67,7 @@
                 if (nxt.endH > cur.endH) cur.endDate = nxt.endDate;
                 cur.endH = Math.max(cur.endH, nxt.endH);
                 cur.duration_min = (cur.duration_min || 0) + (nxt.duration_min || 0);
+                cur._sessions = [...cur._sessions, nxt];
                 i++;
             }
             out.push(cur);
@@ -92,8 +93,7 @@
 
     // Edit popover state
     let popover = null;
-    let editStart = '';
-    let editEnd = '';
+    let editSessions = [];
 
     // Create popover state
     let createPopover = null;
@@ -145,36 +145,36 @@
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    $: editDurationMin = (editStart && editEnd && new Date(editEnd) > new Date(editStart))
-        ? Math.round((new Date(editEnd) - new Date(editStart)) / 60000)
-        : null;
-
     function openPopover(e, session) {
         e.stopPropagation();
-        const MARGIN = 12, W = 240, H = 240;
+        const MARGIN = 12, W = 240, H = 300;
         let x = e.clientX + MARGIN;
         let y = e.clientY + MARGIN;
         if (x + W > window.innerWidth  - MARGIN) x = e.clientX - W - MARGIN;
         if (y + H > window.innerHeight - MARGIN) y = e.clientY - H - MARGIN;
         popover = { session, x, y };
-        editStart = toLocalDatetimeInput(session.start_time);
-        editEnd = toLocalDatetimeInput(session.end_time);
+        editSessions = (session._sessions ?? [session]).map(s => ({
+            id: s.id,
+            editStart: toLocalDatetimeInput(s.start_time),
+            editEnd: toLocalDatetimeInput(s.end_time),
+        }));
     }
 
     function closePopover() { popover = null; createPopover = null; }
 
     function saveSessionEdit() {
-        dispatch('updatesession', {
-            sessionId: popover.session.id,
-            startTime: new Date(editStart).toISOString(),
-            endTime: new Date(editEnd).toISOString(),
-        });
+        dispatch('updatesessions', editSessions.map(es => ({
+            sessionId: es.id,
+            startTime: new Date(es.editStart).toISOString(),
+            endTime: new Date(es.editEnd).toISOString(),
+        })));
         popover = null;
     }
 
-    function deleteSession() {
-        dispatch('deletesession', { sessionId: popover.session.id });
-        popover = null;
+    function deleteOneSession(id) {
+        dispatch('deletesession', { sessionId: id });
+        editSessions = editSessions.filter(es => es.id !== id);
+        if (editSessions.length === 0) popover = null;
     }
 
     function onKeydown(e) { if (e.key === 'Escape') closePopover(); }
@@ -264,10 +264,11 @@
 {#if popover}
     {@const s = popover.session}
     {@const p = paletteFor(s.section_id)}
+    {@const multi = editSessions.length > 1}
     <div
         role="tooltip"
         on:click|stopPropagation
-        class="fixed z-50 w-52 rounded-lg border border-slate-600 bg-slate-900 shadow-2xl p-3 space-y-2"
+        class="fixed z-50 w-56 rounded-lg border border-slate-600 bg-slate-900 shadow-2xl p-3 space-y-2"
         style="left: {popover.x}px; top: {popover.y}px;">
         <div class="flex items-start justify-between gap-2">
             <span class="font-semibold text-slate-100 text-sm leading-snug">{s.task_title}</span>
@@ -283,34 +284,56 @@
                 <span class="text-xs text-slate-400">{s.section_name}</span>
             </div>
         {/if}
-        <div class="space-y-1.5">
-            <div class="space-y-0.5">
-                <label class="text-xs text-slate-500 block">Start</label>
-                <input type="datetime-local" bind:value={editStart}
-                    on:click|stopPropagation
-                    class="w-full text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500" />
+        <div class="relative">
+            <div
+                class="space-y-3 overflow-y-auto"
+                style="{editSessions.length >= 3 ? 'max-height: 230px;' : ''}">
+                {#each editSessions as es, i}
+                    <div class="space-y-1.5">
+                        {#if multi}
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-400">Block {i + 1}</span>
+                                <button on:click={() => deleteOneSession(es.id)}
+                                    class="text-slate-600 hover:text-red-400 transition-colors" title="Delete block">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        {/if}
+                        <div class="space-y-0.5">
+                            <label class="text-xs text-slate-500 block">Start</label>
+                            <input type="datetime-local" bind:value={editSessions[i].editStart}
+                                on:click|stopPropagation
+                                class="w-full text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500" />
+                        </div>
+                        <div class="space-y-0.5">
+                            <label class="text-xs text-slate-500 block">End</label>
+                            <input type="datetime-local" bind:value={editSessions[i].editEnd}
+                                on:click|stopPropagation
+                                class="w-full text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500" />
+                        </div>
+                    </div>
+                {/each}
             </div>
-            <div class="space-y-0.5">
-                <label class="text-xs text-slate-500 block">End</label>
-                <input type="datetime-local" bind:value={editEnd}
-                    on:click|stopPropagation
-                    class="w-full text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-slate-200 focus:outline-none focus:border-indigo-500" />
-            </div>
-            {#if editDurationMin !== null}
-                <div class="text-xs text-slate-400">{fmtDuration(editDurationMin)}</div>
+            {#if editSessions.length >= 3}
+                <div class="absolute bottom-0 left-0 right-0 h-10 pointer-events-none rounded-b-sm"
+                    style="background: linear-gradient(to bottom, transparent, rgba(15,23,42,0.95));"></div>
             {/if}
-            <div class="flex gap-1.5">
-                <button on:click={saveSessionEdit}
-                    class="flex-1 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1 font-semibold transition-colors">
-                    Save
-                </button>
-                <button on:click={deleteSession}
+        </div>
+        <div class="flex gap-1.5">
+            <button on:click={saveSessionEdit}
+                class="flex-1 text-xs bg-indigo-600 hover:bg-indigo-500 text-white rounded px-2 py-1 font-semibold transition-colors">
+                Save
+            </button>
+            {#if !multi}
+                <button on:click={() => deleteOneSession(editSessions[0].id)}
                     class="text-xs bg-slate-700 hover:bg-red-800 text-slate-400 hover:text-red-200 rounded px-2 py-1 transition-colors" title="Delete session">
                     <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
                     </svg>
                 </button>
-            </div>
+            {/if}
         </div>
     </div>
 {/if}

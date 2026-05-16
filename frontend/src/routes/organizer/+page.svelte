@@ -346,6 +346,32 @@
         }
     }
 
+    async function updateSessionsBatch(e) {
+        const updates = e.detail;
+        const results = await Promise.all(
+            updates.map(({ sessionId, startTime, endTime }) =>
+                api(`/organizer/sessions/${sessionId}`, 'PUT', { start_time: startTime, end_time: endTime })
+                    .then(res => ({ sessionId, res }))
+            )
+        );
+        const succeeded = results.filter(r => r.res?.success);
+        if (succeeded.length > 0) {
+            let sessions = historyData.sessions;
+            for (const { sessionId, res } of succeeded) {
+                sessions = sessions.map(s => s.id === sessionId ? {
+                    ...s,
+                    start_time: res.session.start_time,
+                    end_time: res.session.end_time,
+                    duration_min: Math.round(res.session.duration_min ?? 0),
+                } : s);
+            }
+            historyData = { ...historyData, sessions };
+            toast.success(succeeded.length > 1 ? `${succeeded.length} blocks updated` : 'Session updated');
+            refreshSchedule();
+        }
+        if (succeeded.length < updates.length) toast.error('Some updates failed');
+    }
+
     async function createSession(e) {
         const { taskId, startTime, endTime } = e.detail;
         const res = await api('/organizer/sessions', 'POST', { task_id: taskId, start_time: startTime, end_time: endTime });
@@ -716,6 +742,7 @@
                         {tasks}
                         days={historyDays}
                         on:updatesession={updateSession}
+                        on:updatesessions={updateSessionsBatch}
                         on:deletesession={deleteSession}
                         on:createsession={createSession} />
                 </div>

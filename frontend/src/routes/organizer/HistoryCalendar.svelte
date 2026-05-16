@@ -286,7 +286,7 @@
         {/if}
         <div class="relative">
             <div
-                class="space-y-3 overflow-y-auto"
+                class="space-y-3 overflow-y-auto pb-8"
                 style="{editSessions.length >= 3 ? 'max-height: 230px;' : ''}">
                 {#each editSessions as es, i}
                     <div class="space-y-1.5">

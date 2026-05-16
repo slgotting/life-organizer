@@ -95,25 +95,34 @@
         }
     }
 
-    async function layoutStartTask(task, timerMin) {
-        const active = $activeSessionStore;
-        if (active.session && active.session.task_id !== task.id) {
-            if (!confirm(`Stop "${active.task?.title ?? 'current task'}" to start "${task.title}"?`)) return;
-            await layoutStopTask();
-        }
-        const res = await layoutApi(`${config.organizerTasksEndpoint}/${task.id}/start`, 'POST');
-        if (res?.success) {
-            if (timerMin != null) {
-                localStorage.setItem('activeTimerMin', JSON.stringify({ sessionId: res.session.id, timerMin }));
-            } else {
-                localStorage.removeItem('activeTimerMin');
-            }
-            activeSessionStore.set({ session: res.session, task, timerMin });
-            toast.success(`Started: ${task.title}`);
-        } else {
-            toast.error(res?.message ?? 'Could not start task');
-        }
+    let pulseTimers = {};
+    let nowMs = Date.now();
+    let pulseTickInterval;
+
+    function startPulseTimer(task) {
+        pulseTimers = { ...pulseTimers, [task.id]: { startedAt: Date.now() } };
     }
+
+    async function finishPulseTimer(task) {
+        const timer = pulseTimers[task.id];
+        if (!timer) return;
+        const { [task.id]: _, ...rest } = pulseTimers;
+        pulseTimers = rest;
+        await layoutApi('/organizer/sessions', 'POST', {
+            task_id: task.id,
+            start_time: new Date(timer.startedAt).toISOString(),
+            end_time: new Date().toISOString(),
+        });
+        dismissPulse(task);
+    }
+
+    $: pulseTimerRemaining = Object.fromEntries(
+        Object.entries(pulseTimers).map(([id, timer]) => {
+            const task = $pulseDataStore.tasks.find(t => t.id === id);
+            const targetMs = timer.startedAt + (task?.pulse_duration_min ?? 5) * 60000;
+            return [id, Math.max(0, Math.round((targetMs - nowMs) / 1000))];
+        })
+    );
 
     async function layoutCompleteTask() {
         const task = $activeSessionStore.task;
@@ -206,9 +215,19 @@
         pulseCheckInterval = setInterval(() => {
             readyPulseTasks = computeReadyPulse($pulseDataStore);
         }, 60000);
+        pulseTickInterval = setInterval(() => {
+            nowMs = Date.now();
+            for (const [taskId, timer] of Object.entries(pulseTimers)) {
+                const task = $pulseDataStore.tasks.find(t => t.id === taskId);
+                if (!task) continue;
+                if (nowMs >= timer.startedAt + task.pulse_duration_min * 60000) {
+                    finishPulseTimer(task);
+                }
+            }
+        }, 1000);
     });
 
-    onDestroy(() => clearInterval(pulseCheckInterval));
+    onDestroy(() => { clearInterval(pulseCheckInterval); clearInterval(pulseTickInterval); });
 </script>
 <svelte:head>
     <title>schedulr</title>
@@ -263,13 +282,15 @@
 </nav>
 
 <main class="pt-16 sm:pt-24 w-full min-h-screen text-sm sm:text-lg">
-    {#if readyPulseTasks.length > 0 || ($activeSessionStore.session && $activeSessionStore.task)}
+    {#if readyPulseTasks.length > 0 || Object.keys(pulseTimers).length > 0 || ($activeSessionStore.session && $activeSessionStore.task)}
         <div class="sticky top-14 z-20 bg-slate-950/80 backdrop-blur-sm border-b border-slate-800/50">
             <div class="max-w-5xl mx-auto px-4 py-2 space-y-2">
                 {#each readyPulseTasks as task (task.id)}
                     <PulseBanner {task}
-                        on:dismiss={() => dismissPulse(task)}
-                        on:start={() => { dismissPulse(task); layoutStartTask(task, task.pulse_duration_min); }} />
+                        remainingSec={pulseTimerRemaining[task.id] ?? null}
+                        on:start={() => startPulseTimer(task)}
+                        on:done={() => finishPulseTimer(task)}
+                        on:dismiss={() => dismissPulse(task)} />
                 {/each}
                 {#if $activeSessionStore.session && $activeSessionStore.task}
                     <ActiveTimer

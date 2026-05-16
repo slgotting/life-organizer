@@ -158,6 +158,7 @@
                     </div>
                 </div>
 
+                {#if form.schedule_type !== 'pulse'}
                 <div>
                     <label class="block text-xs text-slate-400 mb-2">Duration Range (minutes)</label>
                     <div class="flex items-center gap-2">
@@ -193,6 +194,7 @@
                         {/if}
                     </div>
                 </div>
+                {/if}
 
                 {#if form.schedule_type === 'pulse'}
                     <div class="space-y-3">

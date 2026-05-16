@@ -511,7 +511,7 @@
         </div>
     {/if}
 
-    <div class="grid grid-cols-3 items-stretch border-b border-slate-700">
+    <div class="grid grid-cols-[auto_1fr_auto] items-stretch border-b border-slate-700">
         {#each TAB_GROUPS as group, gi}
             <div class="flex gap-1 shrink-0 {gi === 1 ? 'justify-center' : gi === 2 ? 'justify-end' : ''}">
                 {#each group as t}

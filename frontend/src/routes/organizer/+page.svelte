@@ -3,6 +3,7 @@
     import toast from 'svelte-french-toast';
     import { goto } from '$app/navigation';
     import { authStore } from '../../stores/auth';
+    import { activeSessionStore } from '../../stores/session';
     import config, { buildServerEndpoint } from '../../config/config';
     import { authenticatedJSONRequest } from '../../lib/auth';
     import { handleApiResponse } from '../../lib/api';
@@ -22,16 +23,29 @@
     let tasks = [];
     let schedule = [];
     let sections = [];
-    let activeSession = null;
-    let activeTask = null;
     let overloadWarning = false;
     let atCapacity = false;
     let loading = true;
     let tab = 'today';
 
     let completingId = null;
-    let activeTimerMin = null;
     let taskModalOpen = false;
+
+    $: activeSession = $activeSessionStore.session;
+    $: activeTask = $activeSessionStore.task;
+    $: activeTimerMin = $activeSessionStore.timerMin;
+
+    // When a session is stopped externally (from another page), refresh task state
+    let _prevSession = null;
+    $: {
+        const curr = $activeSessionStore.session;
+        if (_prevSession && !curr && !loading) {
+            api(config.organizerTasksEndpoint).then(res => { if (res?.success) tasks = res.tasks; });
+            loadTodayMinutes();
+            if (historyData) loadHistory();
+        }
+        _prevSession = curr;
+    }
     let taskTodayMin = {};
     let editingTask = null;
     let quickAddOpen = false;
@@ -91,12 +105,11 @@
             if (sRes?.success)    { schedule = sRes.schedule; overloadWarning = sRes.overload_warning; }
             if (sectRes?.success) sections = sectRes.sections;
             if (sessRes?.success) {
-                activeSession = sessRes.session;
-                activeTask = sessRes.task;
-                if (sessRes.session) {
-                    const stored = JSON.parse(localStorage.getItem('activeTimerMin') || 'null');
-                    activeTimerMin = stored?.sessionId === sessRes.session.id ? stored.timerMin : null;
-                }
+                const timerMin = sessRes.session
+                    ? (JSON.parse(localStorage.getItem('activeTimerMin') || 'null')?.sessionId === sessRes.session.id
+                        ? JSON.parse(localStorage.getItem('activeTimerMin')).timerMin : null)
+                    : null;
+                activeSessionStore.set({ session: sessRes.session, task: sessRes.task ?? null, timerMin });
             }
             if (capRes?.success)  atCapacity = capRes.at_capacity;
         } finally {
@@ -114,14 +127,12 @@
         }
         const res = await api(`${config.organizerTasksEndpoint}/${task.id}/start`, 'POST');
         if (res?.success) {
-            activeSession = res.session;
-            activeTask = task;
-            activeTimerMin = timerMin;
             if (timerMin !== null) {
                 localStorage.setItem('activeTimerMin', JSON.stringify({ sessionId: res.session.id, timerMin }));
             } else {
                 localStorage.removeItem('activeTimerMin');
             }
+            activeSessionStore.set({ session: res.session, task, timerMin });
             toast.success(`Started: ${task.title}`);
         } else {
             toast.error(res?.message ?? 'Could not start task');
@@ -201,9 +212,7 @@
         if (!activeSession) return;
         const res = await api(`${config.organizerTasksEndpoint}/${activeSession.task_id}/stop`, 'POST');
         if (res?.success) {
-            activeSession = null;
-            activeTask = null;
-            activeTimerMin = null;
+            activeSessionStore.set({ session: null, task: null, timerMin: null });
             localStorage.removeItem('activeTimerMin');
             tasks = tasks.map(t => t.id === res.task?.id ? res.task : t);
             toast.success('Session saved!');
@@ -218,9 +227,7 @@
         completingId = null;
         if (res?.success) {
             if (activeSession?.task_id === task.id) {
-                activeSession = null;
-                activeTask = null;
-                activeTimerMin = null;
+                activeSessionStore.set({ session: null, task: null, timerMin: null });
                 localStorage.removeItem('activeTimerMin');
             }
             if (res.task?.is_active) {
@@ -453,10 +460,6 @@
 </script>
 
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
-
-    {#if activeSession && activeTask}
-        <ActiveTimer session={activeSession} task={activeTask} initialTargetMin={activeTimerMin} on:stop={stopTask} on:complete={() => completeTask(activeTask)} />
-    {/if}
 
     {#if overloadWarning}
         <div class="flex items-start gap-2 px-4 py-2.5 bg-red-900/30 border border-red-700/50 rounded-lg text-sm text-red-300">
@@ -733,7 +736,7 @@
 <QuickAddModal
     open={quickAddOpen}
     {sections}
-    defaultOneOff={tab === 'oneoff'}
+    defaultOneOff={tab === 'oneoff' || tab === 'today'}
     on:save={quickAddTask}
     on:close={() => quickAddOpen = false} />
 

@@ -44,12 +44,35 @@
     function blockHeight(s, e) { return `${Math.max((e - s) / totalHours * 100, 0.5)}%`; }
 
     function sessionsForDay(dateStr) {
-        return sessions
-            .filter(s => s.start_time.startsWith(dateStr))
+        const mapped = sessions
+            .filter(s => new Date(s.start_time + 'Z').toLocaleDateString('en-CA') === dateStr)
             .map(s => {
                 const st = new Date(s.start_time + 'Z'), en = new Date(s.end_time + 'Z');
                 return { ...s, startH: st.getHours() + st.getMinutes() / 60, endH: en.getHours() + en.getMinutes() / 60, startDate: st, endDate: en };
-            });
+            })
+            .sort((a, b) => a.startH - b.startH);
+        const out = [];
+        let i = 0;
+        while (i < mapped.length) {
+            const cur = { ...mapped[i] };
+            while (i + 1 < mapped.length) {
+                const nxt = mapped[i + 1];
+                const gapMin = (nxt.startH - cur.endH) * 60;
+                if (nxt.task_id !== cur.task_id || gapMin < 0 || gapMin >= 5) break;
+                const otherInGap = mapped.some(
+                    x => x.id !== cur.id && x.id !== nxt.id && x.task_id !== cur.task_id
+                      && x.startH >= cur.endH && x.startH < nxt.startH
+                );
+                if (otherInGap) break;
+                if (nxt.endH > cur.endH) cur.endDate = nxt.endDate;
+                cur.endH = Math.max(cur.endH, nxt.endH);
+                cur.duration_min = (cur.duration_min || 0) + (nxt.duration_min || 0);
+                i++;
+            }
+            out.push(cur);
+            i++;
+        }
+        return out;
     }
 
     function fmtHour(h) {

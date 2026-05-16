@@ -316,11 +316,12 @@
     $: historyDays = historyData ? Array.from({ length: 7 }, (_, i) => {
         const d = new Date(historyData.week_start + 'T12:00:00');
         d.setDate(d.getDate() + i);
-        const dateStr = d.toISOString().slice(0, 10);
+        const pad = n => String(n).padStart(2, '0');
+        const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
         return {
             dateStr,
             dayName: d.toLocaleDateString('en', { weekday: 'long' }),
-            isToday: dateStr === new Date().toISOString().slice(0, 10),
+            isToday: dateStr === new Date().toLocaleDateString('en-CA'),
         };
     }) : [];
 

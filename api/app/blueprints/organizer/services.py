@@ -87,7 +87,8 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
         })
 
     deep_tasks = [t for t in tasks if (t.schedule_type or 'recurring') == 'deep_work']
-    recurring_tasks = [t for t in tasks if (t.schedule_type or 'recurring') != 'deep_work']
+    pulse_tasks = [t for t in tasks if (t.schedule_type or 'recurring') == 'pulse']
+    recurring_tasks = [t for t in tasks if (t.schedule_type or 'recurring') not in ('deep_work', 'pulse')]
 
     actual_min_by_task = {}
     if deep_tasks:
@@ -145,6 +146,29 @@ def build_schedule(user_id, days=7, tz_offset_minutes=0):
                     'daily_target_min': target_min,
                 })
                 ds['pools'][task.section_id] = max(0, ds['pools'][task.section_id] - target_min)
+
+    # Pre-pass: place pulse tasks on every day where their section is active (or always if no section).
+    for task in pulse_tasks:
+        tid = str(task.id)
+        interval = task.pulse_interval_min or 120
+        duration = task.pulse_duration_min or 5
+        for ds in day_structs:
+            has_section_block = task.section_id and task.section_id in ds['pools']
+            no_section = not task.section_id
+            if has_section_block or no_section:
+                ds['tasks'].append({
+                    'id': tid,
+                    'title': task.title,
+                    'task_type': task.task_type,
+                    'section_id': task.section_id,
+                    'urgency': 'needs_doing',
+                    'min_duration_min': duration,
+                    'max_duration_min': duration,
+                    'overtime': False,
+                    'is_pulse': True,
+                    'pulse_interval_min': interval,
+                    'pulse_duration_min': duration,
+                })
 
     # Pre-pass: place pinned tasks on their designated days before greedy runs.
     for task in recurring_tasks:
@@ -276,9 +300,15 @@ def check_capacity_warning(user_id):
 
     weekly_demand = 0
     for task in tasks:
-        if (task.schedule_type or 'recurring') == 'deep_work':
+        st = task.schedule_type or 'recurring'
+        if st == 'deep_work':
             target = task.daily_target_min or round((task.min_duration_min + task.max_duration_min) / 2)
             weekly_demand += target * len(task.scheduled_days or [])
+        elif st == 'pulse':
+            interval = task.pulse_interval_min or 120
+            duration = task.pulse_duration_min or 5
+            times_per_day = max(1, 480 // interval)
+            weekly_demand += times_per_day * duration * 7
         elif task.recurrence_max_days > 0:
             times_per_week = 7.0 / task.recurrence_max_days
             weekly_demand += times_per_week * task.min_duration_min

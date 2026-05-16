@@ -12,6 +12,10 @@
                     body: `Tasks committed to specific days of the week (e.g. Mon, Wed, Fri). You set a daily target in minutes; the scheduler places the task on those days and tracks your pace across the week using completed session time. Urgency is pace-based: if you are behind your weekly average the task shows as more urgent, ahead means Upcoming. Use this for ongoing commitments with a weekly structure — instrument practice, a side project, language study.`,
                 },
                 {
+                    label: 'Pulse',
+                    body: `A short task repeated at a fixed interval throughout each day — for example, physical therapy exercises every two hours. You set the interval (minutes between repetitions) and the duration per repetition. Pulse tasks appear in your Today view with a pulsing violet border to grab attention, and the card shows the duration and interval (e.g. "5m · every 120m"). They are placed automatically on every day that their section has a time block (or every day if no section is assigned). The interval and duration are also factored into your weekly capacity estimate.`,
+                },
+                {
                     label: 'One-off',
                     body: `A task that only needs to be done once. It behaves like a Recurring task for scheduling purposes but disappears from the active list once marked done. Use this for discrete errands or project milestones.`,
                 },
@@ -72,8 +76,8 @@
                     body: `A 7-column grid showing tasks across the next 7 days. Drag a task chip from one day to another to manually pin it to a new date — a "Recompute Schedule" button appears after drops so you can trigger a full re-evaluation when ready. Click any task chip to edit it. A legend at the top shows urgency colors and the green ring used for Fixed tasks.`,
                 },
                 {
-                    label: 'All Tasks / Fixed / Recurring / One-off',
-                    body: `Task management tabs. All four tabs share the section sidebar on the left — click a section to filter, or click "All" to see everything. Use these tabs to create, edit, and delete tasks.`,
+                    label: 'All Tasks / Fixed / Recurring / One-off / Pulse',
+                    body: `Task management tabs. All five tabs share the section sidebar on the left — click a section to filter, or click "All" to see everything. Use these tabs to create, edit, and delete tasks.`,
                 },
                 {
                     label: 'History',

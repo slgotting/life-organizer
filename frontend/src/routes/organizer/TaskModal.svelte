@@ -20,6 +20,8 @@
         scheduled_days: [],
         daily_target_min: 90,
         daily_target_manual: false,
+        pulse_interval_min: 120,
+        pulse_duration_min: 5,
     };
 
     const PRIORITIES = [
@@ -76,7 +78,11 @@
     function submit() {
         if (!form.title.trim()) return;
         if (form.schedule_type === 'deep_work' && form.scheduled_days.length === 0) return;
-        dispatch('save', { ...form });
+        dispatch('save', {
+            ...form,
+            pulse_interval_min: parseInt(form.pulse_interval_min) || 120,
+            pulse_duration_min: parseInt(form.pulse_duration_min) || 5,
+        });
     }
 
     function clamp(field, min, max) {
@@ -113,7 +119,7 @@
                 <div>
                     <label class="block text-xs text-slate-400 mb-1">Schedule Type</label>
                     <div class="flex gap-0.5 rounded-lg bg-slate-800 border border-slate-600 p-0.5">
-                        {#each [['recurring','Recurring'], ['deep_work','Fixed'], ['one_off','One-off']] as [val, label]}
+                        {#each [['recurring','Recurring'], ['deep_work','Fixed'], ['pulse','Pulse'], ['one_off','One-off']] as [val, label]}
                             <button
                                 on:click={() => setScheduleMode(val)}
                                 class="flex-1 py-1.5 text-xs rounded font-medium transition-colors
@@ -187,6 +193,29 @@
                         {/if}
                     </div>
                 </div>
+
+                {#if form.schedule_type === 'pulse'}
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-2">Repeat every (minutes)</label>
+                            <div class="flex items-center gap-1">
+                                <button on:click={() => stepField('pulse_interval_min', -15, 5)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
+                                <input type="number" bind:value={form.pulse_interval_min} min="5" class="w-20 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                                <button on:click={() => stepField('pulse_interval_min', 15, 5)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                                <span class="text-slate-500 text-xs ml-1">min between reps</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-2">Duration per rep (minutes)</label>
+                            <div class="flex items-center gap-1">
+                                <button on:click={() => stepField('pulse_duration_min', -1, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">−</button>
+                                <input type="number" bind:value={form.pulse_duration_min} min="1" class="w-20 text-center bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
+                                <button on:click={() => stepField('pulse_duration_min', 1, 1)} class="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs">+</button>
+                                <span class="text-slate-500 text-xs ml-1">min per rep</span>
+                            </div>
+                        </div>
+                    </div>
+                {/if}
 
                 {#if form.schedule_type === 'deep_work'}
                     <div>

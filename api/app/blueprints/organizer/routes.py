@@ -55,6 +55,8 @@ def create_task():
         scheduled_days=data.get('scheduled_days', []),
         daily_target_min=daily_target_min,
         daily_target_manual=daily_target_manual,
+        pulse_interval_min=int(data.get('pulse_interval_min', 120)),
+        pulse_duration_min=int(data.get('pulse_duration_min', 5)),
     )
     task.save()
     return jsonify({'success': True, 'task': task.to_dict()}), 201
@@ -87,6 +89,7 @@ def update_task(task_id):
         'min_duration_min', 'max_duration_min', 'recurrence_min_days',
         'recurrence_max_days', 'priority', 'overtime_eligible', 'is_one_off',
         'schedule_type', 'scheduled_days', 'daily_target_min', 'daily_target_manual',
+        'pulse_interval_min', 'pulse_duration_min',
     ]
     for f in fields:
         if f in data:

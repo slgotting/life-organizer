@@ -33,6 +33,7 @@
     $: daysSince = task.days_since != null ? `${task.days_since}d ago` : 'Never done';
     $: priorityStyle = PRIORITY_STYLE[task.priority] ?? null;
     $: isDeepWork = task.schedule_type === 'deep_work';
+    $: isPulse = task.schedule_type === 'pulse';
     $: scheduledDaysLabel = isDeepWork && task.scheduled_days?.length
         ? task.scheduled_days.map(d => DAY_ABBR[d]).join(' ')
         : '';
@@ -66,7 +67,7 @@
     }
 </script>
 
-<div class="rounded-lg border {isActive ? 'border-emerald-600 bg-emerald-900/20' : 'border-slate-700 bg-slate-800/50'} {compact ? 'p-2 space-y-1' : 'p-3 space-y-2'} transition-colors">
+<div class="rounded-lg border {isActive ? 'border-emerald-600 bg-emerald-900/20' : isPulse ? 'border-violet-600/70 bg-violet-900/10 pulse-border' : 'border-slate-700 bg-slate-800/50'} {compact ? 'p-2 space-y-1' : 'p-3 space-y-2'} transition-colors">
     <div class="flex items-start gap-2">
         <span class="mt-0.5 px-1.5 py-0.5 text-xs rounded {urgency.bg} {urgency.text} whitespace-nowrap shrink-0">{urgency.label}</span>
         <span class="{compact ? 'text-sm' : ''} font-medium text-slate-100 leading-snug">{task.title}</span>
@@ -96,11 +97,15 @@
     {/if}
 
     <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
-        {#if isDeepWork}
+        {#if isPulse}
+            <span class="text-violet-400">◉ Pulse</span>
+        {:else if isDeepWork}
             <span class="text-emerald-400">◎ Fixed</span>
         {/if}
         <span title="Duration">
-            {#if isDeepWork && task.daily_target_min}
+            {#if isPulse}
+                {task.pulse_duration_min}m · every {task.pulse_interval_min}m
+            {:else if isDeepWork && task.daily_target_min}
                 {task.daily_target_min}m/day
             {:else}
                 {fmtRange(task.min_duration_min, task.max_duration_min)}
@@ -108,10 +113,10 @@
         </span>
         {#if !compact && isDeepWork && scheduledDaysLabel}
             <span title="Scheduled days" class="text-emerald-600">{scheduledDaysLabel}</span>
-        {:else if !compact && !isDeepWork}
+        {:else if !compact && !isDeepWork && !isPulse}
             <span title="Recurrence">every {task.recurrence_min_days}–{task.recurrence_max_days}d</span>
         {/if}
-        {#if !isDeepWork}<span title="Last done">{daysSince}</span>{/if}
+        {#if !isDeepWork && !isPulse}<span title="Last done">{daysSince}</span>{/if}
         {#if !compact && sectionName}<span class="text-slate-400">{sectionName}</span>{/if}
         {#if priorityStyle}<span class={priorityStyle.cls}>{priorityStyle.label}</span>{/if}
         {#if task.overtime_eligible}<span class="text-amber-500">OT</span>{/if}
@@ -191,3 +196,13 @@
         {/if}
     </div>
 </div>
+
+<style>
+    @keyframes pulse-border {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        50%       { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25); }
+    }
+    :global(.pulse-border) {
+        animation: pulse-border 2s ease-in-out infinite;
+    }
+</style>

@@ -28,10 +28,12 @@ class Task(me.Document):
     priority = me.StringField(default='medium', choices=['high', 'medium', 'low'])
     overtime_eligible = me.BooleanField(default=False)
     created_at = me.DateTimeField(default=datetime.utcnow)
-    schedule_type = me.StringField(default='recurring', choices=['recurring', 'deep_work'])
+    schedule_type = me.StringField(default='recurring', choices=['recurring', 'deep_work', 'pulse'])
     scheduled_days = me.ListField(me.IntField(), default=list)
     daily_target_min = me.IntField(default=None)
     daily_target_manual = me.BooleanField(default=False)
+    pulse_interval_min = me.IntField(default=120)
+    pulse_duration_min = me.IntField(default=5)
 
     def urgency_at(self, reference_dt=None):
         ref = reference_dt or datetime.utcnow()
@@ -92,6 +94,8 @@ class Task(me.Document):
             'scheduled_days': list(self.scheduled_days or []),
             'daily_target_min': self.daily_target_min,
             'daily_target_manual': bool(self.daily_target_manual),
+            'pulse_interval_min': self.pulse_interval_min or 120,
+            'pulse_duration_min': self.pulse_duration_min or 5,
         }
 
 

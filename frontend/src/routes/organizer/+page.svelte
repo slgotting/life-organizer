@@ -445,6 +445,7 @@
             { id: 'deepwork',  label: 'Fixed'      },
             { id: 'recurring', label: 'Recurring'  },
             { id: 'oneoff',    label: 'One-off'    },
+            { id: 'pulse',     label: 'Pulse'      },
         ],
         [
             { id: 'history',   label: 'History'    },
@@ -455,9 +456,11 @@
     $: recurringTasks = tasks.filter(t => !t.is_one_off && (t.schedule_type || 'recurring') === 'recurring');
     $: oneOffTasks = tasks.filter(t => t.is_one_off);
     $: deepWorkTasks = tasks.filter(t => t.schedule_type === 'deep_work');
+    $: pulseTasks = tasks.filter(t => t.schedule_type === 'pulse');
     $: filteredRecurring = selectedSectionId === null ? recurringTasks : recurringTasks.filter(t => t.section_id === selectedSectionId);
     $: filteredOneOff = selectedSectionId === null ? oneOffTasks : oneOffTasks.filter(t => t.section_id === selectedSectionId);
     $: filteredDeepWork = selectedSectionId === null ? deepWorkTasks : deepWorkTasks.filter(t => t.section_id === selectedSectionId);
+    $: filteredPulse = selectedSectionId === null ? pulseTasks : pulseTasks.filter(t => t.section_id === selectedSectionId);
 </script>
 
 <div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
@@ -591,8 +594,8 @@
             <ScheduleGrid {schedule} {sections} on:assign={assignFromWeekGrid} on:edit={(e) => { editingTask = tasks.find(t => t.id === e.detail) ?? null; taskModalOpen = true; }} />
         </div>
 
-    {:else if tab === 'tasks' || tab === 'recurring' || tab === 'oneoff' || tab === 'deepwork'}
-        {@const tabTasks = tab === 'tasks' ? filteredTasks : tab === 'recurring' ? filteredRecurring : tab === 'oneoff' ? filteredOneOff : filteredDeepWork}
+    {:else if tab === 'tasks' || tab === 'recurring' || tab === 'oneoff' || tab === 'deepwork' || tab === 'pulse'}
+        {@const tabTasks = tab === 'tasks' ? filteredTasks : tab === 'recurring' ? filteredRecurring : tab === 'oneoff' ? filteredOneOff : tab === 'pulse' ? filteredPulse : filteredDeepWork}
         <div class="flex gap-4">
             <div class="w-44 shrink-0 border-r border-slate-700 pr-3">
                 <SectionsSidebar
@@ -625,6 +628,15 @@
                                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
                             </svg>
                             New Fixed Task
+                        </button>
+                    {:else if tab === 'pulse'}
+                        <button
+                            on:click={() => { editingTask = null; taskModalOpen = true; }}
+                            class="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-violet-700 hover:bg-violet-600 text-white rounded font-semibold transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            New Pulse Task
                         </button>
                     {:else}
                         <button
@@ -722,7 +734,7 @@
 <TaskModal
     open={taskModalOpen}
     task={editingTask}
-    presetScheduleType={editingTask ? null : (tab === 'deepwork' ? 'deep_work' : null)}
+    presetScheduleType={editingTask ? null : (tab === 'deepwork' ? 'deep_work' : tab === 'pulse' ? 'pulse' : null)}
     {sections}
     on:save={saveTask}
     on:close={() => { taskModalOpen = false; editingTask = null; }} />

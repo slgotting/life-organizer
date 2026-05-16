@@ -11,10 +11,15 @@
     </span>
     <span class="text-violet-300 font-medium text-sm truncate min-w-0">{task.title}</span>
     <span class="text-xs text-violet-500 shrink-0">{task.pulse_duration_min}m</span>
-    <div class="ml-auto shrink-0">
+    <div class="ml-auto flex items-center gap-2 shrink-0">
+        <button
+            on:click={() => dispatch('start')}
+            class="px-3 py-1 text-xs font-semibold bg-indigo-700 hover:bg-indigo-600 text-white rounded transition-colors">
+            Start
+        </button>
         <button
             on:click={() => dispatch('dismiss')}
-            class="px-3 py-1 text-xs font-semibold bg-violet-700 hover:bg-violet-600 text-white rounded transition-colors">
+            class="px-3 py-1 text-xs font-semibold bg-violet-800/60 hover:bg-violet-700/60 text-violet-300 rounded transition-colors">
             Dismiss
         </button>
     </div>

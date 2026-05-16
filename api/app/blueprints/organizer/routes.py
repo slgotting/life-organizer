@@ -143,6 +143,9 @@ def stop_task(task_id):
     session.duration_min = (now - session.start_time).total_seconds() / 60
     session.save()
     task = Task.objects(id=task_id, user_id=uid).first()
+    if task and (task.schedule_type or 'recurring') != 'deep_work':
+        task.last_done = now
+        task.save()
     return jsonify({'success': True, 'session': session.to_dict(), 'task': task.to_dict() if task else None})
 
 
@@ -155,7 +158,10 @@ def snooze_task(task_id):
     task = Task.objects(id=task_id, user_id=uid).first()
     if not task:
         return jsonify({'success': False}), 404
-    task.snoozed_until = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    now = datetime.utcnow()
+    today_str = now.strftime('%Y-%m-%d')
+    task.pinned_dates = [d for d in (task.pinned_dates or []) if d != today_str]
+    task.snoozed_until = now.replace(hour=0, minute=0, second=0, microsecond=0)
     task.save()
     return jsonify({'success': True, 'task': task.to_dict()})
 

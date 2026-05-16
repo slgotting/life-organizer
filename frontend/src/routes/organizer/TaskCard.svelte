@@ -174,20 +174,22 @@
             {/if}
         </div>
 
-        <button
-            on:click={() => dispatch('complete', task)}
-            disabled={isCompleting}
-            class="px-3 {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 rounded transition-colors whitespace-nowrap">
-            {#if isCompleting}
-                <span class="flex gap-1 items-center justify-center">
-                    <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:-0.3s]"></span>
-                    <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:-0.15s]"></span>
-                    <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce"></span>
-                </span>
-            {:else}
-                Mark Done
-            {/if}
-        </button>
+        {#if task.is_one_off}
+            <button
+                on:click={() => dispatch('complete', task)}
+                disabled={isCompleting}
+                class="px-3 {compact ? 'py-1' : 'py-1.5'} text-xs font-semibold bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 rounded transition-colors whitespace-nowrap">
+                {#if isCompleting}
+                    <span class="flex gap-1 items-center justify-center">
+                        <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:-0.3s]"></span>
+                        <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:-0.15s]"></span>
+                        <span class="w-1 h-1 rounded-full bg-slate-300 animate-bounce"></span>
+                    </span>
+                {:else}
+                    Mark Done
+                {/if}
+            </button>
+        {/if}
 
         {#if skippable && !isActive}
             <button

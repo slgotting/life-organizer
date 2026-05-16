@@ -132,8 +132,10 @@
         <button on:click={handleStop} class="px-3 py-1 text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white rounded transition-colors">
             Stop
         </button>
-        <button on:click={handleComplete} class="px-3 py-1 text-xs font-semibold bg-slate-600 hover:bg-slate-500 text-white rounded transition-colors">
-            Mark Done
-        </button>
+        {#if task?.is_one_off}
+            <button on:click={handleComplete} class="px-3 py-1 text-xs font-semibold bg-slate-600 hover:bg-slate-500 text-white rounded transition-colors">
+                Mark Done
+            </button>
+        {/if}
     </div>
 </div>

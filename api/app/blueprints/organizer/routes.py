@@ -148,9 +148,6 @@ def stop_task(task_id):
     session.duration_min = (now - session.start_time).total_seconds() / 60
     session.save()
     task = Task.objects(id=task_id, user_id=uid).first()
-    if task and (task.schedule_type or 'recurring') != 'deep_work':
-        task.last_done = now
-        task.save()
     return jsonify({'success': True, 'session': session.to_dict(), 'task': task.to_dict() if task else None})
 
 
@@ -302,13 +299,6 @@ def create_session():
         duration_min=(end_time - start_time).total_seconds() / 60,
     )
     session.save()
-    if (task.schedule_type or 'recurring') not in ('deep_work', 'pulse'):
-        session_date = session.start_time.date()
-        if session.duration_min and session.duration_min >= 1:
-            last_done_date = task.last_done.date() if task.last_done else None
-            if last_done_date is None or session_date > last_done_date:
-                task.last_done = datetime.combine(session_date, datetime.max.time())
-                task.save()
     cfg = get_or_create_config(uid)
     section = next((s for s in cfg.sections if s.id == task.section_id), None)
     return jsonify({

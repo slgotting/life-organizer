@@ -127,6 +127,8 @@ class UserConfig(me.Document):
 
     user_id = me.StringField(required=True, unique=True)
     sections = me.EmbeddedDocumentListField(Section, default=list)
+    pulse_min_gap_min = me.IntField(default=30)
+    pulse_gap_mode = me.StringField(default='minimum', choices=['minimum', 'deterministic'])
 
     def to_dict(self):
         return {
@@ -134,4 +136,6 @@ class UserConfig(me.Document):
                 {'id': s.id, 'name': s.name, 'day_configs': s.day_configs or {}}
                 for s in self.sections
             ],
+            'pulse_min_gap_min': self.pulse_min_gap_min if self.pulse_min_gap_min is not None else 30,
+            'pulse_gap_mode': self.pulse_gap_mode or 'minimum',
         }

@@ -408,6 +408,32 @@ def get_stats():
 
 
 
+@bp.route('/config', methods=['GET'])
+@verify_token
+def get_config():
+    uid = _user_id(request.headers)
+    if not uid:
+        return jsonify({'success': False}), 401
+    cfg = get_or_create_config(uid)
+    return jsonify({'success': True, **cfg.to_dict()})
+
+
+@bp.route('/config', methods=['PUT'])
+@verify_token
+def update_config():
+    uid = _user_id(request.headers)
+    if not uid:
+        return jsonify({'success': False}), 401
+    cfg = get_or_create_config(uid)
+    data = request.get_json() or {}
+    if 'pulse_min_gap_min' in data:
+        cfg.pulse_min_gap_min = max(0, int(data['pulse_min_gap_min']))
+    if 'pulse_gap_mode' in data and data['pulse_gap_mode'] in ('minimum', 'deterministic'):
+        cfg.pulse_gap_mode = data['pulse_gap_mode']
+    cfg.save()
+    return jsonify({'success': True, **cfg.to_dict()})
+
+
 @bp.route('/sections', methods=['GET'])
 @verify_token
 def get_sections():

@@ -153,8 +153,13 @@
         return JSON.parse(localStorage.getItem('pulseState') || '{}');
     }
 
-    function getPulsePrefs() {
-        return { minGapMin: 30, gapMode: 'minimum', ...JSON.parse(localStorage.getItem('pulsePrefs') || '{}') };
+    let pulsePrefs = { minGapMin: 30, gapMode: 'minimum' };
+
+    async function loadPulsePrefs() {
+        const res = await layoutApi(config.organizerConfigEndpoint);
+        if (res?.success) {
+            pulsePrefs = { minGapMin: res.pulse_min_gap_min ?? 30, gapMode: res.pulse_gap_mode ?? 'minimum' };
+        }
     }
 
     function chooseNextInterval(task, lastIntervalMin) {
@@ -169,10 +174,9 @@
 
     function computeReadyPulse({ tasks, sections }) {
         const state = getPulseLocalState();
-        const prefs = getPulsePrefs();
         const now = Date.now();
         let lastAnyDismissAt = 0;
-        if (prefs.gapMode === 'minimum') {
+        if (pulsePrefs.gapMode === 'minimum') {
             for (const ts of Object.values(state)) {
                 if (ts.lastDismissedAt > lastAnyDismissAt) lastAnyDismissAt = ts.lastDismissedAt;
             }
@@ -181,7 +185,7 @@
             if (!isInSectionHours(task, sections)) return false;
             const ts = state[task.id];
             if (ts && now < ts.lastDismissedAt + ts.nextIntervalMin * 60000) return false;
-            if (prefs.gapMode === 'minimum' && now < lastAnyDismissAt + prefs.minGapMin * 60000) return false;
+            if (pulsePrefs.gapMode === 'minimum' && now < lastAnyDismissAt + pulsePrefs.minGapMin * 60000) return false;
             return true;
         });
     }
@@ -213,7 +217,10 @@
             } catch {
                 // network error — don't force logout when offline
             }
-            const sessRes = await layoutApi(config.organizerActiveSessionEndpoint);
+            const [sessRes] = await Promise.all([
+                layoutApi(config.organizerActiveSessionEndpoint),
+                loadPulsePrefs(),
+            ]);
             if (sessRes?.success && sessRes.session) {
                 const stored = JSON.parse(localStorage.getItem('activeTimerMin') || 'null');
                 const timerMin = stored?.sessionId === sessRes.session.id ? stored.timerMin : null;

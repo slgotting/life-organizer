@@ -1,0 +1,5 @@
+Clicking an entry in the history that has been composed of many different time blocks only shows one single time block editable. The user should be able to edit every single date time block that comprises that conjoined block. So there should be start ends for each section and allow the user to scroll down between them. Always show at least two start end dates so that the user knows it is scrollable. And possibly even part of the third section with a black transparency over it so that the user really knows that it is scrollable.
+
+The pulse tab is being overlayed by the flex div holding the history and stats tabs. This makes it unclickable in certain areas on the right.
+
+Pulse items should have a start button that starts a countdown timer for the tasks duration. It is not necessary though, dismiss is also an expected option.

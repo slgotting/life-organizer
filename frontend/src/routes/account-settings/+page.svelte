@@ -5,6 +5,9 @@
     import { onMount } from "svelte";
     import { getFromLocalStorage } from "../../components/slg/lib/localStorage";
     import Button from "../../components/slg/primitives/Button.svelte";
+    import { authenticatedJSONRequest } from "../../lib/auth";
+    import { handleApiResponse } from "../../lib/api";
+    import config, { buildServerEndpoint } from "../../config/config";
 
     let deleteAccountModalOpen = false;
     let authData;
@@ -13,15 +16,20 @@
 
     let errorMessage = "";
 
-    const DEFAULT_PULSE_PREFS = { minGapMin: 30, gapMode: 'minimum' };
-    let pulsePrefs = { ...DEFAULT_PULSE_PREFS };
+    let pulsePrefs = { minGapMin: 30, gapMode: 'minimum' };
 
-    function loadPulsePrefs() {
-        pulsePrefs = { ...DEFAULT_PULSE_PREFS, ...JSON.parse(localStorage.getItem('pulsePrefs') || '{}') };
+    function token() { return getFromLocalStorage('auth')?.token; }
+    function api(endpoint, method = 'GET', data = undefined) {
+        return authenticatedJSONRequest(buildServerEndpoint(endpoint), method, token(), data).then(handleApiResponse);
     }
 
-    function savePulsePrefs() {
-        localStorage.setItem('pulsePrefs', JSON.stringify(pulsePrefs));
+    async function loadPulsePrefs() {
+        const res = await api(config.organizerConfigEndpoint);
+        if (res?.success) pulsePrefs = { minGapMin: res.pulse_min_gap_min ?? 30, gapMode: res.pulse_gap_mode ?? 'minimum' };
+    }
+
+    async function savePulsePrefs() {
+        await api(config.organizerConfigEndpoint, 'PUT', { pulse_min_gap_min: pulsePrefs.minGapMin, pulse_gap_mode: pulsePrefs.gapMode });
     }
 
     onMount(() => {

@@ -27,3 +27,4 @@
 // organizer/SectionsSidebar({ sections, selectedId }) — sidebar for section management; dispatches 'select'(id|null),'add'({name,day_configs}),'editRequest'(section),'delete'
 // organizer/SectionEditModal({ open, section })     — per-day schedule editor (time_block/duration/off per day, copy-to-all); dispatches 'save','close'
 // organizer/StatsPanel({ stats, sections })         — dashboard with SVG donut chart by section + sortable task table with section tabs
+// organizer/CompletionReviewModal({ open, items }) — daily review dialog for under-minimum sessions; dispatches 'save'({completions:[{taskId,date}]}),'skip'

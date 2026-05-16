@@ -18,6 +18,7 @@
     import AssignDayModal from './AssignDayModal.svelte';
     import HistoryCalendar from './HistoryCalendar.svelte';
     import StatsPanel from './StatsPanel.svelte';
+    import CompletionReviewModal from './CompletionReviewModal.svelte';
 
     if (!$authStore.isAuthenticated) goto('/signin');
 
@@ -28,6 +29,8 @@
     let atCapacity = false;
     let loading = true;
     let tab = 'today';
+    let reviewModalOpen = false;
+    let reviewItems = [];
 
     let completingId = null;
     let taskModalOpen = false;
@@ -117,6 +120,65 @@
             loading = false;
         }
         loadTodayMinutes();
+        checkDailyReview();
+    }
+
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const yesterdayStr = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toLocaleDateString('en-CA'); })();
+
+    async function checkDailyReview() {
+        const configRes = await api(config.organizerConfigEndpoint);
+        if (!configRes?.success) return;
+        const lastReview = configRes.last_review_date;
+        if (lastReview >= todayStr) return;
+        const sinceDate = new Date((lastReview ?? yesterdayStr) + 'T12:00:00');
+        sinceDate.setDate(sinceDate.getDate() + 1);
+        const sinceStr = sinceDate.toLocaleDateString('en-CA');
+        if (sinceStr > yesterdayStr) {
+            await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
+            return;
+        }
+        const reviewRes = await api(`${config.organizerPendingReviewEndpoint}?since=${sinceStr}&until=${yesterdayStr}`);
+        if (!reviewRes?.success || reviewRes.items.length === 0) {
+            await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
+            return;
+        }
+        const autoItems = reviewRes.items.filter(i => i.total_session_min >= i.task.min_duration_min);
+        const dialogItems = reviewRes.items.filter(i => i.total_session_min < i.task.min_duration_min);
+        if (autoItems.length > 0) {
+            await Promise.all(autoItems.map(i =>
+                api(`${config.organizerTasksEndpoint}/${i.task.id}/complete`, 'POST', { completed_at: i.latest_session_date })
+            ));
+            toast.success(`${autoItems.length} task${autoItems.length > 1 ? 's' : ''} marked done from yesterday's work`);
+            const tRes = await api(config.organizerTasksEndpoint);
+            if (tRes?.success) tasks = tRes.tasks;
+        }
+        if (dialogItems.length > 0) {
+            reviewItems = dialogItems;
+            reviewModalOpen = true;
+        } else {
+            await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
+        }
+    }
+
+    async function handleReviewSave(e) {
+        const { completions } = e.detail;
+        if (completions.length > 0) {
+            await Promise.all(completions.map(c =>
+                api(`${config.organizerTasksEndpoint}/${c.taskId}/complete`, 'POST', { completed_at: c.date })
+            ));
+        }
+        await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
+        reviewModalOpen = false;
+        reviewItems = [];
+        const tRes = await api(config.organizerTasksEndpoint);
+        if (tRes?.success) tasks = tRes.tasks;
+    }
+
+    async function handleReviewSkip() {
+        await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
+        reviewModalOpen = false;
+        reviewItems = [];
     }
 
     onMount(loadAll);
@@ -792,3 +854,9 @@
     {schedule}
     on:assign={assignTaskToDay}
     on:close={() => assignDayOpen = false} />
+
+<CompletionReviewModal
+    open={reviewModalOpen}
+    items={reviewItems}
+    on:save={handleReviewSave}
+    on:skip={handleReviewSkip} />

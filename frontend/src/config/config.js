@@ -33,6 +33,7 @@ let config = {
     organizerCapacityEndpoint: '/organizer/capacity',
     organizerHistoryEndpoint: '/organizer/history',
     organizerStatsEndpoint: '/organizer/stats',
+    organizerPendingReviewEndpoint: '/organizer/pending-review',
 }
 
 if (import.meta.env.MODE === 'production') {

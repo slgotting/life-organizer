@@ -23,48 +23,74 @@
     }
 
     let minHour = 8, maxHour = 18;
+
     $: {
-        let mn = 23, mx = 1, found = false;
-        for (const blocks of Object.values(timeBlocks)) {
-            for (const b of blocks) { mn = Math.min(mn, b.start_hour); mx = Math.max(mx, b.end_hour); found = true; }
-        }
+        let lo = Infinity, hi = -Infinity;
         for (const s of sessions) {
+            if (!s.end_time) continue;
             const st = new Date(s.start_time + 'Z'), en = new Date(s.end_time + 'Z');
-            mn = Math.min(mn, st.getHours());
-            mx = Math.max(mx, en.getHours() + (en.getMinutes() > 0 ? 1 : 0));
-            found = true;
+            const stDate = st.toLocaleDateString('en-CA'), enDate = en.toLocaleDateString('en-CA');
+            const startH = st.getHours() + st.getMinutes() / 60;
+            const endH = en.getHours() + en.getMinutes() / 60;
+            lo = Math.min(lo, startH);
+            if (stDate !== enDate) {
+                lo = Math.min(lo, 0);
+                hi = Math.max(hi, 24, endH);
+            } else {
+                hi = Math.max(hi, endH);
+            }
         }
-        if (found) { minHour = Math.max(0, mn); maxHour = Math.min(24, mx + 1); }
+        for (const dayBlocks of Object.values(timeBlocks)) {
+            for (const block of dayBlocks) {
+                lo = Math.min(lo, block.start_hour);
+                hi = Math.max(hi, block.end_hour);
+            }
+        }
+        minHour = isFinite(lo) ? Math.floor(lo) : 8;
+        maxHour = isFinite(hi) ? Math.ceil(hi) : 18;
+        if (minHour >= maxHour) { minHour = 8; maxHour = 18; }
     }
 
-    $: totalHours = Math.max(maxHour - minHour, 1);
+    $: totalHours = maxHour - minHour;
     $: hourTicks = Array.from({ length: totalHours + 1 }, (_, i) => minHour + i);
 
     function top(h)            { return `${(h - minHour) / totalHours * 100}%`; }
     function blockHeight(s, e) { return `${Math.max((e - s) / totalHours * 100, 0.5)}%`; }
 
     function sessionsForDay(dateStr) {
-        const mapped = sessions
-            .filter(s => new Date(s.start_time + 'Z').toLocaleDateString('en-CA') === dateStr)
-            .map(s => {
-                const st = new Date(s.start_time + 'Z'), en = new Date(s.end_time + 'Z');
-                return { ...s, startH: st.getHours() + st.getMinutes() / 60, endH: en.getHours() + en.getMinutes() / 60, startDate: st, endDate: en };
-            })
-            .sort((a, b) => a.startH - b.startH);
+        const prevDate = new Date(dateStr + 'T00:00:00');
+        prevDate.setDate(prevDate.getDate() - 1);
+        const prevDateStr = prevDate.toLocaleDateString('en-CA');
+
+        const segs = [];
+        for (const s of sessions) {
+            if (!s.end_time) continue;
+            const st = new Date(s.start_time + 'Z'), en = new Date(s.end_time + 'Z');
+            const stDate = st.toLocaleDateString('en-CA'), enDate = en.toLocaleDateString('en-CA');
+            const startH = st.getHours() + st.getMinutes() / 60;
+            const endH = en.getHours() + en.getMinutes() / 60;
+            if (stDate === dateStr) {
+                segs.push({ ...s, startH, endH: enDate === dateStr ? endH : 24, startDate: st, endDate: en });
+            } else if (stDate === prevDateStr && enDate === dateStr) {
+                segs.push({ ...s, startH: 0, endH, startDate: st, endDate: en });
+            }
+        }
+        segs.sort((a, b) => a.startH - b.startH);
+
         const out = [];
         let i = 0;
-        while (i < mapped.length) {
-            const cur = { ...mapped[i], _sessions: [mapped[i]] };
-            while (i + 1 < mapped.length) {
-                const nxt = mapped[i + 1];
+        while (i < segs.length) {
+            const cur = { ...segs[i], _sessions: [segs[i]] };
+            while (i + 1 < segs.length) {
+                const nxt = segs[i + 1];
                 const gapMin = (nxt.startH - cur.endH) * 60;
                 if (nxt.task_id !== cur.task_id || gapMin < 0 || gapMin >= 5) break;
-                const otherInGap = mapped.some(
+                const otherInGap = segs.some(
                     x => x.id !== cur.id && x.id !== nxt.id && x.task_id !== cur.task_id
                       && x.startH >= cur.endH && x.startH < nxt.startH
                 );
                 if (otherInGap) break;
-                if (nxt.endH > cur.endH) cur.endDate = nxt.endDate;
+                if (nxt.endDate > cur.endDate) cur.endDate = nxt.endDate;
                 cur.endH = Math.max(cur.endH, nxt.endH);
                 cur.duration_min = (cur.duration_min || 0) + (nxt.duration_min || 0);
                 cur._sessions = [...cur._sessions, nxt];

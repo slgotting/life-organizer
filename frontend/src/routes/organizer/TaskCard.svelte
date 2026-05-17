@@ -7,6 +7,7 @@
     export let skippable = false;
     export let completingId = null;
     export let todayMin = 0;
+    export let weekMin = 0;
 
     const dispatch = createEventDispatcher();
 
@@ -123,6 +124,7 @@
         {#if priorityStyle}<span class={priorityStyle.cls}>{priorityStyle.label}</span>{/if}
         {#if task.overtime_eligible}<span class="text-amber-500">OT</span>{/if}
         {#if todayMin > 0}<span class="text-emerald-400">{fmtDuration(todayMin)} today</span>{/if}
+        {#if weekMin > todayMin}<span class="text-sky-500">{(weekMin / 60).toFixed(1)}h this week</span>{/if}
     </div>
 
     <div class="flex gap-2">

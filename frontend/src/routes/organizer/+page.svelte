@@ -18,8 +18,6 @@
     import AssignDayModal from './AssignDayModal.svelte';
     import HistoryCalendar from './HistoryCalendar.svelte';
     import StatsPanel from './StatsPanel.svelte';
-    import CompletionReviewModal from './CompletionReviewModal.svelte';
-
     if (!$authStore.isAuthenticated) goto('/signin');
 
     let tasks = [];
@@ -29,8 +27,6 @@
     let atCapacity = false;
     let loading = true;
     let tab = 'today';
-    let reviewModalOpen = false;
-    let reviewItems = [];
 
     let completingId = null;
     let taskModalOpen = false;
@@ -45,12 +41,13 @@
         const curr = $activeSessionStore.session;
         if (_prevSession && !curr && !loading) {
             api(config.organizerTasksEndpoint).then(res => { if (res?.success) tasks = res.tasks; });
-            loadTodayMinutes();
+            loadRecentMinutes();
             if (historyData) loadHistory();
         }
         _prevSession = curr;
     }
     let taskTodayMin = {};
+    let taskWeekMin = {};
     let editingTask = null;
     let quickAddOpen = false;
     let assignDayOpen = false;
@@ -83,16 +80,21 @@
         return d.toISOString().slice(0, 10);
     }
 
-    async function loadTodayMinutes() {
-        const res = await api(`${config.organizerHistoryEndpoint}?week_start=${currentWeekStart()}`);
+    async function loadRecentMinutes() {
+        const lookback = new Date();
+        lookback.setDate(lookback.getDate() - 6);
+        const weekStartStr = lookback.toLocaleDateString('en-CA');
+        const res = await api(`${config.organizerHistoryEndpoint}?week_start=${weekStartStr}`);
         if (!res?.success) return;
         const todayStr = new Date().toLocaleDateString('en-CA');
-        const map = {};
+        const todayMap = {}, weekMap = {};
         for (const s of res.sessions) {
             const sDate = new Date(s.start_time + 'Z').toLocaleDateString('en-CA');
-            if (sDate === todayStr) map[s.task_id] = (map[s.task_id] || 0) + (s.duration_min || 0);
+            if (sDate === todayStr) todayMap[s.task_id] = (todayMap[s.task_id] || 0) + (s.duration_min || 0);
+            weekMap[s.task_id] = (weekMap[s.task_id] || 0) + (s.duration_min || 0);
         }
-        taskTodayMin = map;
+        taskTodayMin = todayMap;
+        taskWeekMin = weekMap;
     }
 
     async function loadAll() {
@@ -119,66 +121,7 @@
         } finally {
             loading = false;
         }
-        loadTodayMinutes();
-        checkDailyReview();
-    }
-
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    const yesterdayStr = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toLocaleDateString('en-CA'); })();
-
-    async function checkDailyReview() {
-        const configRes = await api(config.organizerConfigEndpoint);
-        if (!configRes?.success) return;
-        const lastReview = configRes.last_review_date;
-        if (lastReview >= todayStr) return;
-        const sinceDate = new Date((lastReview ?? yesterdayStr) + 'T12:00:00');
-        sinceDate.setDate(sinceDate.getDate() + 1);
-        const sinceStr = sinceDate.toLocaleDateString('en-CA');
-        if (sinceStr > yesterdayStr) {
-            await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
-            return;
-        }
-        const reviewRes = await api(`${config.organizerPendingReviewEndpoint}?since=${sinceStr}&until=${yesterdayStr}`);
-        if (!reviewRes?.success || reviewRes.items.length === 0) {
-            await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
-            return;
-        }
-        const autoItems = reviewRes.items.filter(i => i.total_session_min >= i.task.min_duration_min);
-        const dialogItems = reviewRes.items.filter(i => i.total_session_min < i.task.min_duration_min);
-        if (autoItems.length > 0) {
-            await Promise.all(autoItems.map(i =>
-                api(`${config.organizerTasksEndpoint}/${i.task.id}/complete`, 'POST', { completed_at: i.latest_session_date })
-            ));
-            toast.success(`${autoItems.length} task${autoItems.length > 1 ? 's' : ''} marked done from yesterday's work`);
-            const tRes = await api(config.organizerTasksEndpoint);
-            if (tRes?.success) tasks = tRes.tasks;
-        }
-        if (dialogItems.length > 0) {
-            reviewItems = dialogItems;
-            reviewModalOpen = true;
-        } else {
-            await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
-        }
-    }
-
-    async function handleReviewSave(e) {
-        const { completions } = e.detail;
-        if (completions.length > 0) {
-            await Promise.all(completions.map(c =>
-                api(`${config.organizerTasksEndpoint}/${c.taskId}/complete`, 'POST', { completed_at: c.date })
-            ));
-        }
-        await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
-        reviewModalOpen = false;
-        reviewItems = [];
-        const tRes = await api(config.organizerTasksEndpoint);
-        if (tRes?.success) tasks = tRes.tasks;
-    }
-
-    async function handleReviewSkip() {
-        await api(config.organizerConfigEndpoint, 'PUT', { last_review_date: todayStr });
-        reviewModalOpen = false;
-        reviewItems = [];
+        loadRecentMinutes();
     }
 
     onMount(loadAll);
@@ -279,7 +222,7 @@
             localStorage.removeItem('activeTimerMin');
             tasks = tasks.map(t => t.id === res.task?.id ? res.task : t);
             toast.success('Session saved!');
-            loadTodayMinutes();
+            loadRecentMinutes();
             if (historyData) loadHistory();
         }
     }
@@ -299,7 +242,7 @@
                 tasks = tasks.filter(t => t.id !== res.task?.id);
             }
             await refreshSchedule();
-            loadTodayMinutes();
+            loadRecentMinutes();
             toast.success(`${task.title} marked complete!`);
         }
     }
@@ -388,6 +331,11 @@
         };
     }) : [];
 
+    async function refreshTasks() {
+        const res = await api(config.organizerTasksEndpoint);
+        if (res?.success) tasks = res.tasks;
+    }
+
     async function updateSession(e) {
         const { sessionId, startTime, endTime } = e.detail;
         const res = await api(`/organizer/sessions/${sessionId}`, 'PUT', { start_time: startTime, end_time: endTime });
@@ -403,6 +351,8 @@
             };
             toast.success('Session updated');
             refreshSchedule();
+            refreshTasks();
+            loadRecentMinutes();
         } else {
             toast.error('Failed to update session');
         }
@@ -430,6 +380,8 @@
             historyData = { ...historyData, sessions };
             toast.success(succeeded.length > 1 ? `${succeeded.length} blocks updated` : 'Session updated');
             refreshSchedule();
+            refreshTasks();
+            loadRecentMinutes();
         }
         if (succeeded.length < updates.length) toast.error('Some updates failed');
     }
@@ -441,6 +393,8 @@
             historyData = { ...historyData, sessions: [...historyData.sessions, res.session] };
             toast.success('Session logged');
             refreshSchedule();
+            refreshTasks();
+            loadRecentMinutes();
         } else {
             toast.error('Failed to log session');
         }
@@ -453,6 +407,8 @@
             historyData = { ...historyData, sessions: historyData.sessions.filter(s => s.id !== sessionId) };
             toast.success('Session deleted');
             refreshSchedule();
+            refreshTasks();
+            loadRecentMinutes();
         } else {
             toast.error('Failed to delete session');
         }
@@ -553,7 +509,7 @@
     $: filteredPulse = selectedSectionId === null ? pulseTasks : pulseTasks.filter(t => t.section_id === selectedSectionId);
 </script>
 
-<div class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+<div class="{tab === 'history' ? 'max-w-5xl mx-auto px-2 flex flex-col h-[calc(100vh-4rem)] sm:h-[calc(100vh-6rem)]' : 'max-w-5xl mx-auto px-4 py-6 space-y-4'}">
 
     {#if overloadWarning}
         <div class="flex items-start gap-2 px-4 py-2.5 bg-red-900/30 border border-red-700/50 rounded-lg text-sm text-red-300">
@@ -573,7 +529,7 @@
         </div>
     {/if}
 
-    <div class="grid grid-cols-[auto_1fr_auto] items-stretch border-b border-slate-700">
+    <div class="grid grid-cols-[auto_1fr_auto] items-stretch border-b border-slate-700 shrink-0">
         {#each TAB_GROUPS as group, gi}
             <div class="flex gap-1 shrink-0 {gi === 1 ? 'justify-center' : gi === 2 ? 'justify-end' : ''}">
                 {#each group as t}
@@ -644,6 +600,7 @@
                                             activeSessionTaskId={activeSession?.task_id}
                                             {completingId}
                                             todayMin={taskTodayMin[fullTask.id] ?? 0}
+                                            weekMin={taskWeekMin[fullTask.id] ?? 0}
                                             on:start={(e) => startTask(e.detail)}
                                             on:stop={stopTask}
                                             on:complete={(e) => completeTask(e.detail)}
@@ -762,6 +719,8 @@
                                 {sections}
                                 activeSessionTaskId={activeSession?.task_id}
                                 {completingId}
+                                todayMin={taskTodayMin[task.id] ?? 0}
+                                weekMin={taskWeekMin[task.id] ?? 0}
                                 on:start={(e) => startTask(e.detail)}
                                 on:stop={stopTask}
                                 on:complete={(e) => completeTask(e.detail)}
@@ -774,7 +733,7 @@
         </div>
 
     {:else if tab === 'history'}
-        <div class="flex flex-col" style="height: calc(100vh - 13rem);">
+        <div class="flex flex-col flex-1 min-h-0">
             <div class="flex items-center justify-between mb-3 shrink-0">
                 <h2 class="text-sm font-semibold text-slate-300">Work History</h2>
                 <div class="flex items-center gap-2">
@@ -854,9 +813,3 @@
     {schedule}
     on:assign={assignTaskToDay}
     on:close={() => assignDayOpen = false} />
-
-<CompletionReviewModal
-    open={reviewModalOpen}
-    items={reviewItems}
-    on:save={handleReviewSave}
-    on:skip={handleReviewSkip} />

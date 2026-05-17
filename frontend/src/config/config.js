@@ -5,7 +5,7 @@ import { configProd } from './config.prod';
 
 let config = {
     // template endpoints
-    authorizeEndpoint: '/authorize',
+    authorizeEndpoint: '/auth/authorize',
     loginEndpoint: '/auth/sign_in',
     signUpEndpoint: '/auth/sign_up',
     forgotPasswordEndpoint: '/auth/forgot-password',
@@ -33,7 +33,6 @@ let config = {
     organizerCapacityEndpoint: '/organizer/capacity',
     organizerHistoryEndpoint: '/organizer/history',
     organizerStatsEndpoint: '/organizer/stats',
-    organizerPendingReviewEndpoint: '/organizer/pending-review',
 }
 
 if (import.meta.env.MODE === 'production') {

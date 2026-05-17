@@ -40,7 +40,7 @@
         <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-md flex flex-col max-h-[85vh]">
             <div class="flex items-start justify-between p-4 border-b border-slate-700 shrink-0">
                 <div>
-                    <h2 class="text-base font-semibold text-slate-100">Review Yesterday's Work</h2>
+                    <h2 class="text-base font-semibold text-slate-100">Review Recent Work</h2>
                     <p class="text-xs text-slate-400 mt-0.5">These tasks had time logged but didn't reach their minimum. Count them as done?</p>
                 </div>
             </div>

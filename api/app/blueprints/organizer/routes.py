@@ -13,6 +13,22 @@ def _user_id(headers):
     return str(user.id) if user else None
 
 
+def _recalculate_last_done(user_id, task_id):
+    task = Task.objects(id=task_id, user_id=user_id).first()
+    if not task:
+        return None
+    latest = WorkSession.objects(
+        user_id=user_id, task_id=task_id, end_time__ne=None
+    ).order_by('-start_time').first()
+    if latest:
+        d = latest.start_time.date()
+        task.last_done = datetime(d.year, d.month, d.day, 23, 59, 59)
+    else:
+        task.last_done = None
+    task.save()
+    return task
+
+
 @bp.route('/tasks', methods=['GET'])
 @verify_token
 def get_tasks():
@@ -147,7 +163,7 @@ def stop_task(task_id):
     session.end_time = now
     session.duration_min = (now - session.start_time).total_seconds() / 60
     session.save()
-    task = Task.objects(id=task_id, user_id=uid).first()
+    task = _recalculate_last_done(uid, task_id)
     return jsonify({'success': True, 'session': session.to_dict(), 'task': task.to_dict() if task else None})
 
 
@@ -183,17 +199,10 @@ def complete_task(task_id):
         session.end_time = now
         session.duration_min = (now - session.start_time).total_seconds() / 60
         session.save()
-    data = request.get_json() or {}
-    completed_at_str = data.get('completed_at')
     today_str = now.strftime('%Y-%m-%d')
     task.pinned_dates = [d for d in (task.pinned_dates or []) if d != today_str]
-    if (task.schedule_type or 'recurring') != 'deep_work':
-        if completed_at_str:
-            task.last_done = datetime.strptime(completed_at_str, '%Y-%m-%d').replace(hour=23, minute=59)
-        else:
-            task.last_done = now
-        if task.is_one_off:
-            task.is_active = False
+    if task.is_one_off:
+        task.is_active = False
     task.save()
     return jsonify({'success': True, 'task': task.to_dict()})
 
@@ -271,6 +280,7 @@ def update_session(session_id):
     if session.start_time and session.end_time:
         session.duration_min = (session.end_time - session.start_time).total_seconds() / 60
     session.save()
+    _recalculate_last_done(uid, session.task_id)
     return jsonify({'success': True, 'session': session.to_dict()})
 
 
@@ -299,6 +309,7 @@ def create_session():
         duration_min=(end_time - start_time).total_seconds() / 60,
     )
     session.save()
+    _recalculate_last_done(uid, task_id)
     cfg = get_or_create_config(uid)
     section = next((s for s in cfg.sections if s.id == task.section_id), None)
     return jsonify({
@@ -325,7 +336,9 @@ def delete_session(session_id):
     session = WorkSession.objects(id=session_id, user_id=uid).first()
     if not session:
         return jsonify({'success': False}), 404
+    task_id = session.task_id
     session.delete()
+    _recalculate_last_done(uid, task_id)
     return jsonify({'success': True})
 
 
@@ -443,60 +456,9 @@ def update_config():
         cfg.pulse_min_gap_min = max(0, int(data['pulse_min_gap_min']))
     if 'pulse_gap_mode' in data and data['pulse_gap_mode'] in ('minimum', 'deterministic'):
         cfg.pulse_gap_mode = data['pulse_gap_mode']
-    if 'last_review_date' in data:
-        cfg.last_review_date = data['last_review_date']
     cfg.save()
     return jsonify({'success': True, **cfg.to_dict()})
 
-
-@bp.route('/pending-review', methods=['GET'])
-@verify_token
-def pending_review():
-    uid = _user_id(request.headers)
-    if not uid:
-        return jsonify({'success': False}), 401
-    since_str = request.args.get('since')
-    until_str = request.args.get('until')
-    if not since_str or not until_str:
-        return jsonify({'success': False, 'message': 'since and until required'}), 400
-    since_dt = datetime.strptime(since_str, '%Y-%m-%d')
-    until_dt = datetime.strptime(until_str, '%Y-%m-%d') + timedelta(days=1)
-    reviewable_types = ('recurring', 'one_off', None)
-    tasks_list = Task.objects(user_id=uid, is_active=True).filter(
-        schedule_type__nin=['deep_work', 'pulse']
-    )
-    candidate_tasks = {
-        str(t.id): t for t in tasks_list
-        if t.last_done is None or t.last_done < since_dt
-    }
-    if not candidate_tasks:
-        return jsonify({'success': True, 'items': []})
-    sessions = WorkSession.objects(
-        user_id=uid,
-        task_id__in=list(candidate_tasks.keys()),
-        start_time__gte=since_dt,
-        start_time__lt=until_dt,
-        end_time__ne=None,
-    )
-    by_task = {}
-    for s in sessions:
-        tid = s.task_id
-        if tid not in by_task:
-            by_task[tid] = {'total_min': 0, 'latest_date': None}
-        by_task[tid]['total_min'] += s.duration_min or 0
-        s_date = s.start_time.strftime('%Y-%m-%d')
-        if by_task[tid]['latest_date'] is None or s_date > by_task[tid]['latest_date']:
-            by_task[tid]['latest_date'] = s_date
-    items = [
-        {
-            'task': candidate_tasks[tid].to_dict(),
-            'total_session_min': round(info['total_min'], 1),
-            'latest_session_date': info['latest_date'],
-        }
-        for tid, info in by_task.items()
-        if tid in candidate_tasks
-    ]
-    return jsonify({'success': True, 'items': items})
 
 
 @bp.route('/sections', methods=['GET'])

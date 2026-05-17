@@ -98,6 +98,7 @@
     let pulseTimers = {};
     let nowMs = Date.now();
     let pulseTickInterval;
+    let activePulseTaskId = null;
 
     function startPulseTimer(task) {
         pulseTimers = { ...pulseTimers, [task.id]: { startedAt: Date.now() } };
@@ -172,7 +173,15 @@
         return Math.round(min + Math.random() * (max - min));
     }
 
-    function computeReadyPulse({ tasks, sections }) {
+    function computeReadyPulse({ tasks, sections }, timers = {}) {
+        if (Object.keys(timers).length > 0) {
+            return tasks.filter(t => timers[t.id]);
+        }
+        if (activePulseTaskId) {
+            const current = tasks.find(t => t.id === activePulseTaskId);
+            if (current) return [current];
+            activePulseTaskId = null;
+        }
         const state = getPulseLocalState();
         const now = Date.now();
         let lastAnyDismissAt = 0;
@@ -181,28 +190,34 @@
                 if (ts.lastDismissedAt > lastAnyDismissAt) lastAnyDismissAt = ts.lastDismissedAt;
             }
         }
-        return tasks.filter(task => {
+        const ready = tasks.filter(task => {
             if (!isInSectionHours(task, sections)) return false;
             const ts = state[task.id];
             if (ts && now < ts.lastDismissedAt + ts.nextIntervalMin * 60000) return false;
             if (pulsePrefs.gapMode === 'minimum' && now < lastAnyDismissAt + pulsePrefs.minGapMin * 60000) return false;
             return true;
         });
+        if (ready.length > 0) {
+            activePulseTaskId = ready[0].id;
+            return [ready[0]];
+        }
+        return [];
     }
 
     function dismissPulse(task) {
+        activePulseTaskId = null;
         const state = getPulseLocalState();
         const last = state[task.id];
         const nextIntervalMin = chooseNextInterval(task, last?.nextIntervalMin ?? null);
         state[task.id] = { lastDismissedAt: Date.now(), nextIntervalMin };
         localStorage.setItem('pulseState', JSON.stringify(state));
-        readyPulseTasks = computeReadyPulse($pulseDataStore);
+        readyPulseTasks = computeReadyPulse($pulseDataStore, pulseTimers);
     }
 
     let readyPulseTasks = [];
     let pulseCheckInterval;
 
-    $: readyPulseTasks = computeReadyPulse($pulseDataStore);
+    $: readyPulseTasks = computeReadyPulse($pulseDataStore, pulseTimers);
 
     onMount(async () => {
         if ($authStore.isAuthenticated) {
@@ -232,7 +247,7 @@
             if (!isOkRoute) goto('/signin');
         }
         pulseCheckInterval = setInterval(() => {
-            readyPulseTasks = computeReadyPulse($pulseDataStore);
+            readyPulseTasks = computeReadyPulse($pulseDataStore, pulseTimers);
         }, 60000);
         pulseTickInterval = setInterval(() => {
             nowMs = Date.now();

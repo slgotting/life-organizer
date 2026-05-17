@@ -3,6 +3,7 @@ import { authenticatedFormRequest, authenticatedGetRequest } from "./auth";
 import toast from "svelte-french-toast";
 
 export function setSettingsLocal(settings) {
+    if (settings == null) return;
     localStorage.setItem('settings', JSON.stringify(settings));
 }
 
@@ -10,8 +11,8 @@ export async function getSettingsLocal() {
     let localSettings = localStorage.getItem('settings');
     let settings;
     if (localSettings) {
-        settings = JSON.parse(localSettings);
-        if (Object.entries(settings).length > 0) {
+        try { settings = JSON.parse(localSettings); } catch { localStorage.removeItem('settings'); }
+        if (settings && Object.entries(settings).length > 0) {
             return settings;
         }
     }
